@@ -17,7 +17,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         title: const Text('CATEGORIAS', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -30,7 +30,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
             child: ElevatedButton(
               onPressed: () {
-                // TODO: Implement button action
+                Navigator.pushNamed(context, "/camera", arguments: {"filterIndex": index});
               },
               style: ElevatedButton.styleFrom(
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
