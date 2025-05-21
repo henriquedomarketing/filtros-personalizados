@@ -69,7 +69,7 @@ class ThirdsGridPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint =
         Paint()
-          ..color = Colors.white.withOpacity(0.2)
+          ..color = Colors.white.withValues(alpha: 0.2)
           ..strokeWidth = 2
           ..filterQuality = FilterQuality.high;
 

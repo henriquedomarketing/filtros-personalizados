@@ -10,10 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
-enum CameraMode {
-  front,
-  back,
-}
+enum CameraMode { front, back }
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key});
@@ -25,16 +22,17 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   List<CameraDescription> cameras = [];
 
+  late FilterModel filterModel = FilterModel();
+
   CameraDescription? backCamera;
   CameraDescription? frontCamera;
 
-  CameraController? _backCameraController;
-  CameraController? _frontCameraController;
-
   CameraMode selectedCamera = CameraMode.front;
-  VideoPlayerController? _videoPlayerController;
+  // VideoPlayerController? _videoPlayerController;
 
-  late Future<void> _initializeControllerFuture;
+  bool _isProcessingCapture = false;
+
+  late Future<CameraController> _currentCameraFuture;
 
   bool _isRecording = false;
 
@@ -46,9 +44,9 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
-    _backCameraController?.dispose();
-    _frontCameraController?.dispose();
-    _videoPlayerController?.dispose();
+    // _backCameraController?.dispose();
+    // _frontCameraController?.dispose();
+    // _videoPlayerController?.dispose();
     super.dispose();
   }
 
@@ -71,44 +69,114 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void setSelectedCamera(CameraMode newMode) {
-    final controller = newMode == CameraMode.front ? _frontCameraController : _backCameraController;
+    final cameraDescription =
+        newMode == CameraMode.front ? frontCamera : backCamera;
     setState(() {
       selectedCamera = newMode;
-      if (controller == null) {
-        if (newMode == CameraMode.front) {
-          _frontCameraController = CameraController(frontCamera!, ResolutionPreset.high);
-          _initializeControllerFuture = _frontCameraController!.initialize();
-        } else {
-          _backCameraController = CameraController(backCamera!, ResolutionPreset.high);
-          _initializeControllerFuture = _backCameraController!.initialize();
-        }
-      }
+      _currentCameraFuture = loadController(cameraDescription!);
     });
   }
 
-  CameraController? getCurrentController(CameraMode mode) {
-    if (mode == CameraMode.back) {
-      return _backCameraController;
-    } else {
-      return _frontCameraController;
-    }
+  Future<CameraController> loadController(CameraDescription camera) async {
+    final controller = CameraController(camera, ResolutionPreset.high);
+    await controller.initialize();
+    return controller;
   }
 
   void onCameraFlip() {
-    setSelectedCamera(selectedCamera == CameraMode.front ? CameraMode.back : CameraMode.front);
+    setSelectedCamera(
+      selectedCamera == CameraMode.front ? CameraMode.back : CameraMode.front,
+    );
   }
 
-  Future<void> _takePicture(String assetPath) async {
+  void showImagePreview(String filePath) {
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            content: Image.file(File(filePath)),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Fechar'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+  void showVideoPreview(String filePath) {
+    Future<VideoPlayerController> loadVideo() async {
+      VideoPlayerController videoPlayerController = VideoPlayerController.file(File(filePath));
+      videoPlayerController.initialize();
+      return videoPlayerController;
+    }
+    final loadVideoFuture = loadVideo();
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return FutureBuilder<VideoPlayerController>(
+            future: loadVideoFuture,
+            builder: (context, snapshot) {
+              // Decide content
+              Widget content = const Center(child: CircularProgressIndicator());
+              VideoPlayerController? controller = snapshot.connectionState == ConnectionState.done ? snapshot.data : null;
+              if (snapshot.connectionState == ConnectionState.done && controller != null) {
+                content = AspectRatio(
+                  aspectRatio: controller.value.aspectRatio,
+                  child: VideoPlayer(controller),
+                );
+              }
+              return AlertDialog(
+                content: content,
+                actions: <Widget>[
+                  IconButton(
+                    onPressed: () {
+                      controller?.play();
+                    },
+                    style: IconButton.styleFrom(backgroundColor: Colors.transparent),
+                    icon: Icon(Icons.play_circle_fill, color: controller != null ? null : Colors.grey),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      controller?.pause();
+                      controller?.dispose();
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text('Fechar'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    }
+  }
+
+  Future<void> _takePicture(
+    String assetPath,
+    CameraController controller,
+  ) async {
     try {
-      await _initializeControllerFuture;
-      final image = await getCurrentController(selectedCamera)!.takePicture();
+      setState(() {
+        _isProcessingCapture = true;
+      });
+      final image = await controller.takePicture();
+
+      if (assetPath == "") {
+        showImagePreview(image.path);
+        return;
+      }
 
       final originalImage = img.decodeImage(File(image.path).readAsBytesSync());
       if (originalImage == null) return;
 
-      final overlayImageBytes = await DefaultAssetBundle.of(
-        context,
-      ).load(assetPath);
+      final overlayImageBytes = await DefaultAssetBundle.of(context).load(assetPath);
       final overlayImage = img.decodeImage(
         overlayImageBytes.buffer.asUint8List(),
       );
@@ -132,37 +200,23 @@ class _CameraScreenState extends State<CameraScreen> {
       newFile.writeAsBytesSync(img.encodePng(compositeImage));
 
       print('Composite image saved to: $filePath');
+      showImagePreview(filePath);
 
-      if (mounted) {
-        // Now you can use the filePath to display or share the image
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              content: Image.file(File(filePath)),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text('Close'),
-                ),
-              ],
-            );
-          },
-        );
-      }
     } catch (e) {
       print(e);
+    } finally {
+      setState(() {
+        _isProcessingCapture = false;
+      });
     }
   }
 
-  Future<void> _startVideoRecording() async {
-    if (getCurrentController(selectedCamera)!.value.isRecordingVideo) {
-      // A recording is already Canceled.
+  Future<void> _startVideoRecording(CameraController controller) async {
+    if (controller.value.isRecordingVideo) {
       return;
     }
     try {
-      await _initializeControllerFuture;
-      await getCurrentController(selectedCamera)!.startVideoRecording();
+      await controller.startVideoRecording();
       setState(() {
         _isRecording = true;
       });
@@ -172,68 +226,34 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<void> _stopVideoRecording() async {
-    if (!getCurrentController(selectedCamera)!.value.isRecordingVideo) {
+  Future<void> _stopVideoRecording(CameraController controller) async {
+    if (!controller.value.isRecordingVideo) {
       return;
     }
     try {
-      final file = await getCurrentController(selectedCamera)!.stopVideoRecording();
       setState(() {
-        _videoPlayerController = VideoPlayerController.file(File(file.path))
-          ..initialize().then((_) {
-            _videoPlayerController?.play();
-            setState(() {});
-          });
+        _isProcessingCapture = true;
+      });
+      final file = await controller.stopVideoRecording();
+      setState(() {
         _isRecording = false;
       });
       print('Video recorded to ${file.path}');
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            if (_videoPlayerController != null &&
-                _videoPlayerController!.value.isInitialized) {
-              return AlertDialog(
-                content: AspectRatio(
-                  aspectRatio: _videoPlayerController!.value.aspectRatio,
-                  child: VideoPlayer(_videoPlayerController!),
-                ),
-                actions: <Widget>[
-                  TextButton(
-                    onPressed: () {
-                      _videoPlayerController?.pause();
-                      _videoPlayerController?.dispose();
-                      _videoPlayerController = null;
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Close'),
-                  ),
-                ],
-              );
-            }
-            return AlertDialog(
-              content: Text("Video saved to ${file.path}"),
-              actions: <Widget>[
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Close'),
-                ),
-              ],
-            );
-          },
-        );
-      }
+      showVideoPreview(file.path);
     } catch (e) {
       print(e);
+    } finally {
+      setState(() {
+        _isProcessingCapture = false;
+      });
     }
   }
 
-  void _onTapCapture() {
-    final selectedFilter = Provider.of<FilterModel>(context, listen: false);
+  void _onTapCapture(CameraController controller) {
     if (_isRecording) {
-      _stopVideoRecording();
+      _stopVideoRecording(controller);
     } else {
-      _takePicture(selectedFilter.filterAssetPath);
+      _takePicture(filterModel.filterAssetPath, controller);
     }
   }
 
@@ -246,11 +266,20 @@ class _CameraScreenState extends State<CameraScreen> {
     print("Gallery button pressed");
   }
 
-  Widget buildBottomControl(BuildContext context) {
+  Widget captureIcon(BuildContext context) {
+    if (_isRecording) return Icon(Icons.stop, size: 40, color: Colors.red);
+    if (_isProcessingCapture) return CircularProgressIndicator();
+    return Icon(Icons.camera_alt, size: 40, color: Colors.white);
+  }
+
+  Widget buildBottomControl(
+    BuildContext context,
+    CameraController? controller,
+  ) {
     return Positioned(
       bottom: 10,
-      left: 0, // Added to align to the left
-      right: 0, // Added to align to the right
+      left: 0,
+      right: 0,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -260,21 +289,20 @@ class _CameraScreenState extends State<CameraScreen> {
             child: const Icon(Icons.image),
           ),
           GestureDetector(
-            onTap: _onTapCapture,
-            onLongPress: _startVideoRecording,
-            onLongPressUp: _stopVideoRecording,
+            onTap: () => _onTapCapture(controller!),
+            onLongPress: () => _startVideoRecording(controller!),
+            onLongPressUp: () => _stopVideoRecording(controller!),
             child: SizedBox(
               width: 80.0, // Center button width
               height: 80.0, // Center button height
               child: FloatingActionButton(
-                onPressed: null,
-                // onTap and onLongPress handle actions
+                onPressed: null, // onTap and onLongPress handle actions
                 backgroundColor: _isRecording ? Colors.red : Colors.indigo,
                 child: Icon(
                   _isRecording ? Icons.stop : Icons.camera_alt,
                   size: 40,
                   color: _isRecording ? Colors.black87 : Colors.white,
-                ), // Optionally increase icon size
+                ),
               ),
             ),
           ),
@@ -289,7 +317,10 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  Widget buildFilterSelector(BuildContext context) {
+  Widget buildFilterSelector(
+    BuildContext context,
+    CameraController? controller,
+  ) {
     return Positioned(
       right: 0, // Adjust left position as needed
       child: SizedBox(
@@ -310,12 +341,12 @@ class _CameraScreenState extends State<CameraScreen> {
                   filter.changeFilter('assets/overlay${index + 1}.png');
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo.withOpacity(0.9),
+                  backgroundColor: Colors.indigo.withValues(alpha: 0.9),
                   // Example item color
                   shape: const CircleBorder(),
                   padding: EdgeInsets.zero, // Remove default padding
                 ).copyWith(
-                  fixedSize: MaterialStateProperty.all(const Size(60, 60)),
+                  fixedSize: WidgetStateProperty.all(const Size(60, 60)),
                 ),
                 child: Text(
                   '${index + 1}',
@@ -333,34 +364,48 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
+  // Widget buildCameraOverlay(BuildContext context) {
+  //   final selectedController = getCurrentController(selectedCamera);
+  //   if (selectedController == null || !selectedController.value.isInitialized) {
+  //     return const Center(child: CircularProgressIndicator());
+  //   }
+  //   if (selectedCamera == CameraMode.back) {
+  //     return CameraOverlay(
+  //       cameraController: _backCameraController,
+  //     );
+  //   } else {
+  //     return CameraOverlay(
+  //       cameraController: _frontCameraController,
+  //     );
+  //   }
+  // }
+
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => FilterModel(),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          FutureBuilder(
-            key: ValueKey(selectedCamera),
-            future: _initializeControllerFuture,
-            builder: (context, snapshot) {
-              final selectedController = getCurrentController(selectedCamera);
-              if (selectedController == null ||
-                  snapshot.connectionState != ConnectionState.done) {
-                print("loading because _controller null ? ${selectedController == null} >> snapshot.connectionState? ${snapshot.connectionState}");
-                return const Center(child: CircularProgressIndicator());
-              }
-              // Use a ValueKey with the selected camera's name to ensure CameraOverlay rebuilds when the camera changes.
-              // This is crucial for updating the CameraPreview within CameraOverlay.
-              return CameraOverlay(
-                key: ValueKey(selectedCamera),
-                cameraController: selectedController,
-              );
-            },
-          ),
-          buildBottomControl(context),
-          buildFilterSelector(context),
-        ],
+      create: (context) => filterModel,
+      child: FutureBuilder<CameraController>(
+        future: _currentCameraFuture,
+        builder: (context, snapshot) {
+          Widget cameraPreview = const Center(
+            child: CircularProgressIndicator(),
+          );
+          if (snapshot.connectionState == ConnectionState.done) {
+            cameraPreview = CameraOverlay(
+              key: ValueKey(selectedCamera),
+              cameraController: snapshot.data,
+            );
+          }
+
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              cameraPreview,
+              buildBottomControl(context, snapshot.data),
+              buildFilterSelector(context, snapshot.data),
+            ],
+          );
+        },
       ),
     );
   }
