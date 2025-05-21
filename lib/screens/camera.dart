@@ -28,6 +28,7 @@ class _CameraScreenState extends State<CameraScreen> {
   CameraDescription? frontCamera;
 
   CameraMode selectedCamera = CameraMode.front;
+
   // VideoPlayerController? _videoPlayerController;
 
   bool _isProcessingCapture = false;
@@ -110,10 +111,13 @@ class _CameraScreenState extends State<CameraScreen> {
 
   void showVideoPreview(String filePath) {
     Future<VideoPlayerController> loadVideo() async {
-      VideoPlayerController videoPlayerController = VideoPlayerController.file(File(filePath));
+      VideoPlayerController videoPlayerController = VideoPlayerController.file(
+        File(filePath),
+      );
       videoPlayerController.initialize();
       return videoPlayerController;
     }
+
     final loadVideoFuture = loadVideo();
     if (mounted) {
       showDialog(
@@ -124,8 +128,12 @@ class _CameraScreenState extends State<CameraScreen> {
             builder: (context, snapshot) {
               // Decide content
               Widget content = const Center(child: CircularProgressIndicator());
-              VideoPlayerController? controller = snapshot.connectionState == ConnectionState.done ? snapshot.data : null;
-              if (snapshot.connectionState == ConnectionState.done && controller != null) {
+              VideoPlayerController? controller =
+                  snapshot.connectionState == ConnectionState.done
+                      ? snapshot.data
+                      : null;
+              if (snapshot.connectionState == ConnectionState.done &&
+                  controller != null) {
                 content = AspectRatio(
                   aspectRatio: controller.value.aspectRatio,
                   child: VideoPlayer(controller),
@@ -138,8 +146,13 @@ class _CameraScreenState extends State<CameraScreen> {
                     onPressed: () {
                       controller?.play();
                     },
-                    style: IconButton.styleFrom(backgroundColor: Colors.transparent),
-                    icon: Icon(Icons.play_circle_fill, color: controller != null ? null : Colors.grey),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                    ),
+                    icon: Icon(
+                      Icons.play_circle_fill,
+                      color: controller != null ? null : Colors.grey,
+                    ),
                   ),
                   TextButton(
                     onPressed: () {
@@ -179,7 +192,9 @@ class _CameraScreenState extends State<CameraScreen> {
       final originalImage = img.decodeImage(File(image.path).readAsBytesSync());
       if (originalImage == null) return;
 
-      final overlayImageBytes = await DefaultAssetBundle.of(context).load(assetPath);
+      final overlayImageBytes = await DefaultAssetBundle.of(
+        context,
+      ).load(assetPath);
       final overlayImage = img.decodeImage(
         overlayImageBytes.buffer.asUint8List(),
       );
@@ -204,7 +219,6 @@ class _CameraScreenState extends State<CameraScreen> {
 
       print('Composite image saved to: $filePath');
       showImagePreview(filePath);
-
     } catch (e) {
       print(e);
     } finally {
@@ -262,7 +276,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void onLeftAction() async {
-    // Fire up gallery app on device
+    // TODO open gallery app
     // if (await Permission.manageExternalStorage.request().isGranted) {
     OpenFile.open("/storage/emulated/0/DCIM/Camera");
     // }
@@ -270,8 +284,18 @@ class _CameraScreenState extends State<CameraScreen> {
     print("Gallery button pressed");
   }
 
+  void onClearFilter(FilterModel filter) {
+    filter.changeFilter("");
+  }
+
+  void onFilterPressed(int index, FilterModel filter) {
+    print('Item ${index + 1} pressed');
+    filter.changeFilter('assets/overlay${index + 1}.png');
+  }
+
   Widget buildCaptureIcon(BuildContext context) {
-    if (_isProcessingCapture) return CircularProgressIndicator(color: Colors.white);
+    if (_isProcessingCapture)
+      return CircularProgressIndicator(color: Colors.white);
     if (_isRecording) return Icon(Icons.stop, size: 40, color: Colors.black87);
     return Icon(Icons.camera_alt, size: 40, color: Colors.white);
   }
@@ -321,45 +345,51 @@ class _CameraScreenState extends State<CameraScreen> {
     BuildContext context,
     CameraController? controller,
   ) {
+    var textStyle = const TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.bold,
+      fontSize: 18,
+    );
+    var buttonStyle = ElevatedButton.styleFrom(
+      backgroundColor: Colors.indigo.withValues(alpha: 0.9),
+      // Example item color
+      shape: const CircleBorder(),
+      padding: EdgeInsets.zero, // Remove default padding
+    ).copyWith(
+      fixedSize: WidgetStateProperty.all(const Size(60, 60)),
+    );
     return Positioned(
       right: 0, // Adjust left position as needed
       child: SizedBox(
         height:
             MediaQuery.of(context).size.height * 0.5, // 50% of screen height
         width: 70, // Adjust width as needed
-        child: ListView.builder(
-          itemCount: 5, // Initially 5 elements
-          itemBuilder: (context, index) {
-            return Padding(
+        child: ListView(
+          children: [
+            Padding(
               padding: const EdgeInsets.symmetric(vertical: 4.0),
-              // Add some spacing between buttons
               child: ElevatedButton(
-                onPressed: () {
-                  // Action for when the button is pressed
-                  print('Item ${index + 1} pressed');
-                  var filter = context.read<FilterModel>();
-                  filter.changeFilter('assets/overlay${index + 1}.png');
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo.withValues(alpha: 0.9),
-                  // Example item color
-                  shape: const CircleBorder(),
-                  padding: EdgeInsets.zero, // Remove default padding
-                ).copyWith(
-                  fixedSize: WidgetStateProperty.all(const Size(60, 60)),
-                ),
-                child: Text(
-                  '${index + 1}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
+                onPressed: () => onClearFilter(filterModel),
+                style: buttonStyle,
+                child: Text('X', style: textStyle),
               ),
-            );
-          },
+            ),
+            ...List.generate(5, (index) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: ElevatedButton(
+                  onPressed: () => onFilterPressed(index, filterModel),
+                  style: buttonStyle,
+                  child: Text('${index + 1}', style: textStyle),
+                ),
+              );
+            }),
+          ],
         ),
+        // child: ListView.builder(
+        //   itemCount: 5,
+        //
+        // ),
       ),
     );
   }
