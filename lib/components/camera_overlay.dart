@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:image/image.dart' as img;
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class CameraOverlay extends StatefulWidget {
   final CameraDescription camera;
@@ -34,8 +37,42 @@ class _CameraOverlayState extends State<CameraOverlay> {
     try {
       await _initializeControllerFuture;
       final image = await _controller.takePicture();
-      // Aqui você pode processar a imagem para adicionar a sobreposição
-      // ou navegar para outra tela para exibir a imagem capturada.
+
+      final originalImage = img.decodeImage(File(image.path).readAsBytesSync());
+      if (originalImage == null) return;
+
+      final overlayImageBytes = await DefaultAssetBundle.of(context).load('assets/overlay.png');
+      final overlayImage = img.decodeImage(overlayImageBytes.buffer.asUint8List());
+      if (overlayImage == null) return;
+
+      // Resize overlay to match camera image resolution
+      final resizedOverlay = img.copyResize(overlayImage,
+          width: originalImage.width, height: originalImage.height);
+
+      // Composite the images
+      final compositeImage = img.compositeImage(originalImage, resizedOverlay);
+
+      // Save the composite image
+      final directory = await getTemporaryDirectory();
+      final filePath = '${directory.path}/composite_image.png';
+      final newFile = File(filePath);
+      newFile.writeAsBytesSync(img.encodePng(compositeImage));
+
+      print('Composite image saved to: $filePath');
+
+      if (mounted) {
+      // Now you can use the filePath to display or share the image
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              content: Image.file(File(filePath)),
+              actions: <Widget>[
+                TextButton(onPressed: () => Navigator.of(context).pop(), child: Text('Close'))],
+            );
+          },
+        );
+      }
     } catch (e) {
       print(e);
     }

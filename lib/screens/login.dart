@@ -1,10 +1,3 @@
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:1523417679.
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:4194068001.
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:1009326834.
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:598618060.
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:2297896750.
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:977295858.
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:2309492578.
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {

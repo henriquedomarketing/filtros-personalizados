@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/screens/camera.dart';
-import 'package:myapp/screens/categories.dart';
-import 'package:myapp/screens/login.dart';
+import 'package:camera_marketing_app/screens/camera.dart';
+import 'package:camera_marketing_app/screens/categories.dart';
+import 'package:camera_marketing_app/screens/login.dart';
+import 'package:camera_marketing_app/screens/admin_panel.dart';
 
 void main() {
   runApp(const MyApp());
@@ -33,11 +34,12 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      initialRoute: "/",
+      initialRoute: "/camera",
       routes: {
         "/": (context) => const LoginScreen(),
         "/categories": (context) => const CategoriesScreen(),
         "/camera": (context) => const CameraScreen(),
+        "/admin": (context) => const AdminPanelScreen(),
       },
     );
   }
