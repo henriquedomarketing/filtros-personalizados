@@ -166,7 +166,10 @@ class _CameraScreenState extends State<CameraScreen> {
       setState(() {
         _isProcessingCapture = true;
       });
+      controller.setFlashMode(FlashMode.off);
+      controller.setExposureMode(ExposureMode.auto);
       final image = await controller.takePicture();
+      controller.pausePreview();
 
       if (assetPath == "") {
         showImagePreview(image.path);
@@ -205,6 +208,7 @@ class _CameraScreenState extends State<CameraScreen> {
     } catch (e) {
       print(e);
     } finally {
+      controller.resumePreview();
       setState(() {
         _isProcessingCapture = false;
       });
@@ -266,9 +270,9 @@ class _CameraScreenState extends State<CameraScreen> {
     print("Gallery button pressed");
   }
 
-  Widget captureIcon(BuildContext context) {
-    if (_isRecording) return Icon(Icons.stop, size: 40, color: Colors.red);
-    if (_isProcessingCapture) return CircularProgressIndicator();
+  Widget buildCaptureIcon(BuildContext context) {
+    if (_isProcessingCapture) return CircularProgressIndicator(color: Colors.white);
+    if (_isRecording) return Icon(Icons.stop, size: 40, color: Colors.black87);
     return Icon(Icons.camera_alt, size: 40, color: Colors.white);
   }
 
@@ -298,11 +302,7 @@ class _CameraScreenState extends State<CameraScreen> {
               child: FloatingActionButton(
                 onPressed: null, // onTap and onLongPress handle actions
                 backgroundColor: _isRecording ? Colors.red : Colors.indigo,
-                child: Icon(
-                  _isRecording ? Icons.stop : Icons.camera_alt,
-                  size: 40,
-                  color: _isRecording ? Colors.black87 : Colors.white,
-                ),
+                child: buildCaptureIcon(context),
               ),
             ),
           ),
