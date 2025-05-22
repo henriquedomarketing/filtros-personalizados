@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
@@ -33,7 +34,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   bool _isProcessingCapture = false;
 
-  late Future<CameraController> _currentCameraFuture;
+  Future<CameraController>? _currentCameraFuture;
 
   bool _isRecording = false;
 
@@ -53,6 +54,8 @@ class _CameraScreenState extends State<CameraScreen> {
 
   void loadCameras() async {
     List<CameraDescription> localCameras = await availableCameras();
+    print("[loadCameras] cameras");
+    print(localCameras);
     setState(() {
       cameras = localCameras;
       frontCamera = localCameras.firstWhere(
@@ -61,7 +64,7 @@ class _CameraScreenState extends State<CameraScreen> {
       backCamera = localCameras.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.back,
       );
-      setSelectedCamera(CameraMode.back);
+      setSelectedCamera(backCamera != null ? CameraMode.back : CameraMode.front);
     });
   }
 
@@ -74,7 +77,9 @@ class _CameraScreenState extends State<CameraScreen> {
         newMode == CameraMode.front ? frontCamera : backCamera;
     setState(() {
       selectedCamera = newMode;
-      _currentCameraFuture = loadController(cameraDescription!);
+      if (cameraDescription != null) {
+        _currentCameraFuture = loadController(cameraDescription);
+      }
     });
   }
 
@@ -276,12 +281,9 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void onLeftAction() async {
-    // TODO open gallery app
-    // if (await Permission.manageExternalStorage.request().isGranted) {
-    OpenFile.open("/storage/emulated/0/DCIM/Camera");
-    // }
-    // Action for left button - TBD: Open gallery
-    print("Gallery button pressed");
+    if (await Permission.manageExternalStorage.request().isGranted) {
+      OpenFile.open("/storage/emulated/0/DCIM/Camera");
+    }
   }
 
   void onClearFilter(FilterModel filter) {
@@ -415,7 +417,7 @@ class _CameraScreenState extends State<CameraScreen> {
     return ChangeNotifierProvider(
       create: (context) => filterModel,
       child: FutureBuilder<CameraController>(
-        future: _currentCameraFuture,
+        future: _currentCameraFuture, // Use the nullable Future
         builder: (context, snapshot) {
           Widget cameraPreview = const Center(
             child: CircularProgressIndicator(),
