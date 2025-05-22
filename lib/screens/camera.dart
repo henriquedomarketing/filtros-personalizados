@@ -3,11 +3,12 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:camera_marketing_app/components/camera_overlay.dart';
 import 'package:camera_marketing_app/models/filter_model.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
-import 'package:open_file/open_file.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:open_file_manager/open_file_manager.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 
@@ -29,8 +30,6 @@ class _CameraScreenState extends State<CameraScreen> {
   CameraDescription? frontCamera;
 
   CameraMode selectedCamera = CameraMode.front;
-
-  // VideoPlayerController? _videoPlayerController;
 
   bool _isProcessingCapture = false;
 
@@ -64,7 +63,9 @@ class _CameraScreenState extends State<CameraScreen> {
       backCamera = localCameras.firstWhere(
         (camera) => camera.lensDirection == CameraLensDirection.back,
       );
-      setSelectedCamera(backCamera != null ? CameraMode.back : CameraMode.front);
+      setSelectedCamera(
+        backCamera != null ? CameraMode.back : CameraMode.front,
+      );
     });
   }
 
@@ -93,6 +94,31 @@ class _CameraScreenState extends State<CameraScreen> {
     setSelectedCamera(
       selectedCamera == CameraMode.front ? CameraMode.back : CameraMode.front,
     );
+  }
+
+  Future<void> onUploadImage(BuildContext context) async {
+    if (filterModel.filterAssetPath == "") {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Nenhum filtro selecionado"),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+    final ImagePicker picker = ImagePicker();
+    // Pick an image
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      // You can now use the image file path
+      print('Image selected: ${image.path}');
+      final processedImagePath = await _processImage(
+        image.path,
+        filterModel.filterAssetPath,
+      );
+      showImagePreview(processedImagePath!);
+    }
   }
 
   void showImagePreview(String filePath) {
@@ -139,9 +165,13 @@ class _CameraScreenState extends State<CameraScreen> {
                       : null;
               if (snapshot.connectionState == ConnectionState.done &&
                   controller != null) {
-                content = AspectRatio(
-                  aspectRatio: controller.value.aspectRatio,
-                  child: VideoPlayer(controller),
+                content = RotatedBox(
+                  quarterTurns: 1, // Rotate 90 degrees clockwise
+                  child: AspectRatio(
+                    aspectRatio: controller.value.aspectRatio,
+                    // Invert aspect ratio for portrait
+                    child: VideoPlayer(controller),
+                  ),
                 );
               }
               return AlertDialog(
@@ -176,8 +206,39 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
+  Future<String?> _processImage(String imagePath, String filterPath) async {
+    final originalImage = img.decodeImage(File(imagePath).readAsBytesSync());
+    if (originalImage == null) return null;
+
+    final overlayImageBytes = await DefaultAssetBundle.of(
+      context,
+    ).load(filterPath);
+    final overlayImage = img.decodeImage(
+      overlayImageBytes.buffer.asUint8List(),
+    );
+    if (overlayImage == null) return null;
+
+    // Resize overlay to match camera image resolution
+    final resizedOverlay = img.copyResize(
+      overlayImage,
+      width: originalImage.width,
+      height: originalImage.height,
+    );
+
+    // Composite the images
+    final compositeImage = img.compositeImage(originalImage, resizedOverlay);
+
+    // Save the composite image
+    final directory = await getSaveDirectory();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final filePath = '${directory.path}/composite_image_$timestamp.png';
+    final newFile = File(filePath)
+      ..writeAsBytesSync(img.encodePng(compositeImage));
+    return filePath;
+  }
+
   Future<void> _takePicture(
-    String assetPath,
+    String filterPath,
     CameraController controller,
   ) async {
     try {
@@ -189,41 +250,16 @@ class _CameraScreenState extends State<CameraScreen> {
       final image = await controller.takePicture();
       controller.pausePreview();
 
-      if (assetPath == "") {
-        showImagePreview(image.path);
+      if (filterPath == "") {
+        copyFileToSaveDirectory(image.path);
         return;
       }
+      final processedImagePath = await _processImage(image.path, filterPath);
 
-      final originalImage = img.decodeImage(File(image.path).readAsBytesSync());
-      if (originalImage == null) return;
-
-      final overlayImageBytes = await DefaultAssetBundle.of(
-        context,
-      ).load(assetPath);
-      final overlayImage = img.decodeImage(
-        overlayImageBytes.buffer.asUint8List(),
-      );
-      if (overlayImage == null) return;
-
-      // Resize overlay to match camera image resolution
-      final resizedOverlay = img.copyResize(
-        overlayImage,
-        width: originalImage.width,
-        height: originalImage.height,
-      );
-
-      // Composite the images
-      final compositeImage = img.compositeImage(originalImage, resizedOverlay);
-
-      // Save the composite image
-      final directory = await getTemporaryDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final filePath = '${directory.path}/composite_image_$timestamp.png';
-      final newFile = File(filePath);
-      newFile.writeAsBytesSync(img.encodePng(compositeImage));
-
-      print('Composite image saved to: $filePath');
-      showImagePreview(filePath);
+      if (processedImagePath != null) {
+        print('Processed image saved to: $processedImagePath');
+        showImagePreview(processedImagePath);
+      }
     } catch (e) {
       print(e);
     } finally {
@@ -239,6 +275,7 @@ class _CameraScreenState extends State<CameraScreen> {
       return;
     }
     try {
+      await controller.prepareForVideoRecording();
       await controller.startVideoRecording();
       setState(() {
         _isRecording = true;
@@ -281,9 +318,16 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void onLeftAction() async {
-    if (await Permission.manageExternalStorage.request().isGranted) {
-      OpenFile.open("/storage/emulated/0/DCIM/Camera");
-    }
+    final docsDir = await getSaveDirectory();
+    // if (await Permission.storage.request().isGranted) {
+    openFileManager(
+      androidConfig: AndroidConfig(
+        folderType: AndroidFolderType.other,
+        folderPath: docsDir.path,
+      ),
+      iosConfig: IosConfig(folderPath: docsDir.path),
+    );
+    // }
   }
 
   void onClearFilter(FilterModel filter) {
@@ -333,10 +377,9 @@ class _CameraScreenState extends State<CameraScreen> {
             ),
           ),
           FloatingActionButton(
-            onPressed: onCameraFlip,
+            onPressed: () => onUploadImage(context),
             mini: true,
-            backgroundColor: hasBothCameras() ? null : Colors.grey,
-            child: const Icon(Icons.cameraswitch_sharp),
+            child: const Icon(Icons.add_photo_alternate),
           ),
         ],
       ),
@@ -357,9 +400,7 @@ class _CameraScreenState extends State<CameraScreen> {
       // Example item color
       shape: const CircleBorder(),
       padding: EdgeInsets.zero, // Remove default padding
-    ).copyWith(
-      fixedSize: WidgetStateProperty.all(const Size(60, 60)),
-    );
+    ).copyWith(fixedSize: WidgetStateProperty.all(const Size(60, 60)));
     return Positioned(
       right: 0, // Adjust left position as needed
       child: SizedBox(
@@ -388,57 +429,81 @@ class _CameraScreenState extends State<CameraScreen> {
             }),
           ],
         ),
-        // child: ListView.builder(
-        //   itemCount: 5,
-        //
-        // ),
       ),
     );
   }
 
-  // Widget buildCameraOverlay(BuildContext context) {
-  //   final selectedController = getCurrentController(selectedCamera);
-  //   if (selectedController == null || !selectedController.value.isInitialized) {
-  //     return const Center(child: CircularProgressIndicator());
-  //   }
-  //   if (selectedCamera == CameraMode.back) {
-  //     return CameraOverlay(
-  //       cameraController: _backCameraController,
-  //     );
-  //   } else {
-  //     return CameraOverlay(
-  //       cameraController: _frontCameraController,
-  //     );
-  //   }
-  // }
-
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => filterModel,
-      child: FutureBuilder<CameraController>(
-        future: _currentCameraFuture, // Use the nullable Future
-        builder: (context, snapshot) {
-          Widget cameraPreview = const Center(
-            child: CircularProgressIndicator(),
-          );
-          if (snapshot.connectionState == ConnectionState.done) {
-            cameraPreview = CameraOverlay(
-              key: ValueKey(selectedCamera),
-              cameraController: snapshot.data,
-            );
-          }
-
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              cameraPreview,
-              buildBottomControl(context, snapshot.data),
-              buildFilterSelector(context, snapshot.data),
-            ],
-          );
-        },
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: null,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
       ),
+      backgroundColor: Colors.transparent,
+      body: Center(
+        child: ChangeNotifierProvider(
+          create: (context) => filterModel,
+          child: FutureBuilder<CameraController>(
+            future: _currentCameraFuture, // Use the nullable Future
+            builder: (context, snapshot) {
+              Widget cameraPreview = const Center(
+                child: CircularProgressIndicator(),
+              );
+              if (snapshot.connectionState == ConnectionState.done) {
+                cameraPreview = CameraOverlay(
+                  key: ValueKey(selectedCamera),
+                  cameraController: snapshot.data,
+                );
+              }
+
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  cameraPreview,
+                  buildBottomControl(context, snapshot.data),
+                  buildFilterSelector(context, snapshot.data),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: FloatingActionButton(
+                      onPressed: onCameraFlip,
+                      mini: true,
+                      backgroundColor: hasBothCameras() ? null : Colors.grey,
+                      child: const Icon(Icons.cameraswitch_sharp),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+      floatingActionButton: null,
+      drawer: null,
+      bottomNavigationBar: null,
     );
+  }
+
+  void copyFileToSaveDirectory(String path) async {
+    final directory = await getSaveDirectory();
+    final fileName = path.split('/').last;
+    final newPath = '${directory.path}/$fileName';
+    try {
+      await File(path).copy(newPath);
+      print('File copied to: $newPath');
+    } catch (e) {
+      print('Error copying file: $e');
+    }
+  }
+
+  Future<Directory> getSaveDirectory() async {
+    return getApplicationDocumentsDirectory();
   }
 }

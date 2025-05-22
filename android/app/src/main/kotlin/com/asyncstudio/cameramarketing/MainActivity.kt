@@ -1,4 +1,4 @@
-package com.example.myapp
+package com.asyncstudio.cameramarketing
 
 import io.flutter.embedding.android.FlutterActivity
 
