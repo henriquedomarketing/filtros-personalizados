@@ -98,12 +98,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> onUploadImage(BuildContext context) async {
     if (filterModel.filterAssetPath == "") {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Nenhum filtro selecionado"),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      showNoFilterMessage();
       return;
     }
     final ImagePicker picker = ImagePicker();
@@ -241,6 +236,10 @@ class _CameraScreenState extends State<CameraScreen> {
     String filterPath,
     CameraController controller,
   ) async {
+    if (filterModel.filterAssetPath == "") {
+      showNoFilterMessage();
+      return;
+    }
     try {
       setState(() {
         _isProcessingCapture = true;
@@ -248,7 +247,7 @@ class _CameraScreenState extends State<CameraScreen> {
       controller.setFlashMode(FlashMode.off);
       controller.setExposureMode(ExposureMode.auto);
       final image = await controller.takePicture();
-      controller.pausePreview();
+      // controller.pausePreview();
 
       if (filterPath == "") {
         copyFileToSaveDirectory(image.path);
@@ -263,7 +262,7 @@ class _CameraScreenState extends State<CameraScreen> {
     } catch (e) {
       print(e);
     } finally {
-      controller.resumePreview();
+      // controller.resumePreview();
       setState(() {
         _isProcessingCapture = false;
       });
@@ -337,6 +336,15 @@ class _CameraScreenState extends State<CameraScreen> {
   void onFilterPressed(int index, FilterModel filter) {
     print('Item ${index + 1} pressed');
     filter.changeFilter('assets/overlay${index + 1}.png');
+  }
+
+  void showNoFilterMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Nenhum filtro selecionado"),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Widget buildCaptureIcon(BuildContext context) {
