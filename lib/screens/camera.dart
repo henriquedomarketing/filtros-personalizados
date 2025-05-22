@@ -22,7 +22,7 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   List<CameraDescription> cameras = [];
 
-  late FilterModel filterModel = FilterModel();
+  late FilterModel filterModel = FilterModel(name: "test", filterAssetPath: "");
 
   CameraDescription? backCamera;
   CameraDescription? frontCamera;
