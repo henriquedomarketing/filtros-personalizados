@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "389801053746",
+    "project_id": "cameramarketing-91d5a",
+    "storage_bucket": "cameramarketing-91d5a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:389801053746:android:8c982311298978761b762b",
+        "android_client_info": {
+          "package_name": "com.asyncstudio.cameramarketing"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDHbUpAjjJwfHFCm5iDt9ZoZR0NHllLKW4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
