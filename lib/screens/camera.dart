@@ -227,8 +227,9 @@ class _CameraScreenState extends State<CameraScreen> {
     final directory = await getSaveDirectory();
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final filePath = '${directory.path}/composite_image_$timestamp.png';
-    final newFile = File(filePath)
+    final _newFile = File(filePath)
       ..writeAsBytesSync(img.encodePng(compositeImage));
+    print(_newFile);
     return filePath;
   }
 

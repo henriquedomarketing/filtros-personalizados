@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void onLogin(BuildContext context) async {
-    // try {
+    try {
       CompanyModel? result = await Provider.of<AuthProvider>(
         context,
         listen: false,
@@ -37,10 +37,10 @@ class _LoginScreenState extends State<LoginScreen> {
           Navigator.of(context).pushNamed('/categories');
         }
       }
-    // } catch (e) {
-    //   print(e);
-    //   throw e;
-    // }
+    } catch (e) {
+      print(e);
+      throw e;
+    }
   }
 
   void onSupport() {}
