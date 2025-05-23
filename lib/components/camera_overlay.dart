@@ -48,10 +48,10 @@ class _CameraOverlayState extends State<CameraOverlay> {
               opacity: 0.5,
               child: Consumer<FilterModel>(
                 builder: (context, filter, child) {
-                  if (filter.filterAssetPath == "") {
+                  if (filter.url == "") {
                     return Container();
                   }
-                  return Image.asset(filter.filterAssetPath, fit: BoxFit.contain);
+                  return Image.asset(filter.url, fit: BoxFit.contain);
                 },
               ),
             ),

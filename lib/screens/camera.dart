@@ -24,7 +24,7 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   List<CameraDescription> cameras = [];
 
-  late FilterModel filterModel = FilterModel(name: "test", filterAssetPath: "");
+  late FilterModel filterModel = FilterModel(name: "test", url: "");
 
   CameraDescription? backCamera;
   CameraDescription? frontCamera;
@@ -97,7 +97,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> onUploadImage(BuildContext context) async {
-    if (filterModel.filterAssetPath == "") {
+    if (filterModel.url == "") {
       showNoFilterMessage();
       return;
     }
@@ -110,7 +110,7 @@ class _CameraScreenState extends State<CameraScreen> {
       print('Image selected: ${image.path}');
       final processedImagePath = await _processImage(
         image.path,
-        filterModel.filterAssetPath,
+        filterModel.url,
       );
       showImagePreview(processedImagePath!);
     }
@@ -236,7 +236,7 @@ class _CameraScreenState extends State<CameraScreen> {
     String filterPath,
     CameraController controller,
   ) async {
-    if (filterModel.filterAssetPath == "") {
+    if (filterModel.url == "") {
       showNoFilterMessage();
       return;
     }
@@ -312,7 +312,7 @@ class _CameraScreenState extends State<CameraScreen> {
     if (_isRecording) {
       _stopVideoRecording(controller);
     } else {
-      _takePicture(filterModel.filterAssetPath, controller);
+      _takePicture(filterModel.url, controller);
     }
   }
 

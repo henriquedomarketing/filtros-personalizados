@@ -40,7 +40,7 @@ class CameraMarketingApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
       ),
-      initialRoute: "/camera",
+      initialRoute: "/",
       routes: {
         "/": (context) => const LoginScreen(),
         "/categories": (context) => const CategoriesScreen(),

@@ -9,8 +9,10 @@ const os = require('os');
 const path = require('path');
 const fs = require('fs');
 const logger = require("firebase-functions/logger");
+const { defineString } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 
+const bucketNameConfig = defineString("BUCKET_NAME");
 
 admin.initializeApp();
 ffmpeg.setFfmpegPath(ffmpegPath);
@@ -27,7 +29,7 @@ async function downloadFile(url, localPath) {
 }
 
 exports.processVideo = onRequest(
-    { timeoutSeconds: 1200, region: ["us-west1", "us-east1"] },
+    { timeoutSeconds: 1200, region: ["us-west1", "us-east1"],  },
     async (req, res) => {
         const videoUrl = req.body.videoUrl;
         const filterUrl = req.body.filterUrl;
@@ -44,8 +46,7 @@ exports.processVideo = onRequest(
         const tempOutputPath = path.join(os.tmpdir(), outputFileName);
         const outputStoragePath = `processed_videos/${outputFileName}`;
         // Assuming bucket is initialized somewhere
-        const bucket = storage.bucket(functions.config().fb.bucket); // Replace with your bucket name or config variable
-
+        const bucket = storage.bucket(bucketNameConfig.value());
 
         // Process the video with FFmpeg
         await new Promise((resolve, reject) => {
