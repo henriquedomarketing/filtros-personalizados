@@ -1,9 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class UserService {
+class CompanyService {
 
-  static Future<void> registerUser(String email, String password, bool isAdmin) async {
+  static Future<void> registerCompany(String email, String password, String name) async {
     try {
       // Cria o usuário com e-mail e senha
       UserCredential userCredential = await FirebaseAuth.instance
@@ -14,10 +14,10 @@ class UserService {
 
       // Salva informações adicionais no Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'name': name,
         'email': email,
-        'admin': isAdmin,
+        'admin': false,
       });
-
       print('Usuário registrado com sucesso!');
     } on FirebaseAuthException catch (e) {
       print('Erro ao registrar usuário: ${e.message}');
