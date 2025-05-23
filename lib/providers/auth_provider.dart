@@ -1,5 +1,6 @@
 import 'package:camera_marketing_app/models/company_model.dart';
 import 'package:camera_marketing_app/services/company_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class AuthProvider with ChangeNotifier {
@@ -21,10 +22,16 @@ class AuthProvider with ChangeNotifier {
       _loggedUser = user;
       _error = null;
       return user;
-    } catch (e) {
-      _loggedUser = null;
-      _error = e.toString();
-      return null;
+    // } on FirebaseAuthException catch (e) {
+    //   _loggedUser = null;
+    //   _error = e.toString();
+    //   return null;
+    // } catch (e) {
+    //   print(e);
+    //   throw e;
+    //   _loggedUser = null;
+    //   _error = e.toString();
+    //   return null;
     } finally {
       _isLoading = false;
       notifyListeners();

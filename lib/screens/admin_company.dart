@@ -1,3 +1,4 @@
+import 'package:camera_marketing_app/services/company_service.dart';
 import 'package:flutter/material.dart';
 
 class AdminCompanyScreen extends StatefulWidget {
@@ -14,6 +15,13 @@ class _AdminCompanyScreenState extends State<AdminCompanyScreen> {
   final _loginController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
   @override
   void dispose() {
     _companyNameController.dispose();
@@ -22,12 +30,36 @@ class _AdminCompanyScreenState extends State<AdminCompanyScreen> {
     super.dispose();
   }
 
-  void onCadastrar() {
-    if (_formKey.currentState!.validate()) {
-      // Process data from controllers
-      print('Company Name: ${_companyNameController.text}');
-      print('Login: ${_loginController.text}');
-      print('Password: ${_passwordController.text}');
+  void onCadastrar(BuildContext context) async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    print('Company Name: ${_companyNameController.text}');
+    print('Login: ${_loginController.text}');
+    print('Password: ${_passwordController.text}');
+    final name = _companyNameController.text;
+    final email = _loginController.text;
+    final password = _passwordController.text;
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      final error = await CompanyService.adminRegisterCompany(email, password, name);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error ?? "Empresa cadastrada com sucesso!"),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      if (error == null) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      print(e);
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -38,6 +70,13 @@ class _AdminCompanyScreenState extends State<AdminCompanyScreen> {
     // Basic email format validation
     if (!RegExp(r'\S+@\S+\.\S+').hasMatch(value)) {
       return 'Utilize um email válido';
+    }
+    return null;
+  }
+
+  String? validatePassword(String? value) {
+    if (value == null || value.length < 6) {
+      return 'Senha precisa ter no mínimo 6 caracteres';
     }
     return null;
   }
@@ -97,11 +136,12 @@ class _AdminCompanyScreenState extends State<AdminCompanyScreen> {
                 ),
                 controller: _passwordController,
                 obscureText: true,
+                validator: (value) => validatePassword(value),
               ),
               const SizedBox(height: 24.0),
               ElevatedButton(
-                onPressed: onCadastrar,
-                child: const Text('CADASTRAR'),
+                onPressed: () => onCadastrar(context),
+                child: isLoading ? const CircularProgressIndicator() : const Text('CADASTRAR'),
               ),
             ],
           ),

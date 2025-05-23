@@ -15,7 +15,7 @@ class CompanyService {
       toFirestore: (model, _) => (model as CompanyModel).toJson(),
     );
 
-  static Future<void> adminRegisterCompany(
+  static Future<String?> adminRegisterCompany(
     String email,
     String password,
     String name,
@@ -37,24 +37,21 @@ class CompanyService {
           .doc(uid)
           .set(doc as Map<String, dynamic>);
       print('Usuário registrado com sucesso!');
+      return null;
     } on FirebaseAuthException catch (e) {
       print('Erro ao registrar usuário: ${e.message}');
+      return 'Erro ao registrar usuário: ${e.message}';
     }
   }
 
   static Future<CompanyModel?> login(String email, String password) async {
-    try {
-      await Future.delayed(Duration(seconds: 1));
-      return CompanyModel(filters: [], login: email, name: "ADMIN", password: password, admin: true);
-      // UserCredential userCredential = await FirebaseAuth.instance
-      //     .signInWithEmailAndPassword(email: email, password: password);
-      // String uid = userCredential.user!.uid;
-      // final CompanyModel doc = await usersDb.doc(uid).get().then((s) => s.data() as CompanyModel);
-      // return doc;
-    } on FirebaseAuthException catch (e) {
-      print("ERROR: $e");
-      return null;
-    }
+    // await Future.delayed(Duration(seconds: 1));
+    // return CompanyModel(filters: [], login: email, name: "ADMIN", password: password, admin: true);
+    UserCredential userCredential = await FirebaseAuth.instance
+        .signInWithEmailAndPassword(email: email, password: password);
+    String uid = userCredential.user!.uid;
+    final CompanyModel doc = await usersDb.doc(uid).get().then((s) => s.data() as CompanyModel);
+    return doc;
   }
 
   static Future<void> createFilterForCompany(String name, String filePath, CompanyModel company) async {

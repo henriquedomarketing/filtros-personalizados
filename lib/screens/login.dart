@@ -2,6 +2,8 @@ import 'package:camera_marketing_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/company_model.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -23,17 +25,22 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void onLogin(BuildContext context) async {
-    try {
-      var result = await Provider.of<AuthProvider>(
+    // try {
+      CompanyModel? result = await Provider.of<AuthProvider>(
         context,
         listen: false,
       ).login(_loginController.text, _senhaController.text);
       if (result != null) {
-        Navigator.of(context).pushNamed('/categories');
+        if (result.admin) {
+          Navigator.of(context).pushNamed('/admin');
+        } else {
+          Navigator.of(context).pushNamed('/categories');
+        }
       }
-    } catch (e) {
-      print(e);
-    }
+    // } catch (e) {
+    //   print(e);
+    //   throw e;
+    // }
   }
 
   void onSupport() {}
@@ -48,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Container(
           color: Colors.white,
           child: Image.asset(
-            'assets/banner800.jpg', // Replace 'banner800.jpg' with the actual asset path
+            'assets/banner800.jpg', // TODO: get banner image from storage
             fit: BoxFit.fitWidth,
             width: double.infinity,
           ),
@@ -123,6 +130,21 @@ class _LoginScreenState extends State<LoginScreen> {
                                   style: TextStyle(color: Colors.white),
                                 ),
                               ),
+                              authProvider.error != null
+                                  ? Container(
+                                    color: Colors.red.withValues(alpha: 0.25),
+                                    margin: const EdgeInsets.only(top: 10),
+                                    child: Text(
+                                      authProvider.error!,
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  )
+                                  : Container(),
                             ],
                           ),
                         ),

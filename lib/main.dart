@@ -3,6 +3,8 @@
 // Suggested code may be subject to a license. Learn more: ~LicenseLog:3428694682.
 // Suggested code may be subject to a license. Learn more: ~LicenseLog:2553350967.
 // Suggested code may be subject to a license. Learn more: ~LicenseLog:817786057.
+import 'package:camera_marketing_app/screens/admin_company.dart';
+import 'package:camera_marketing_app/screens/admin_filters.dart';
 import 'package:flutter/material.dart';
 import 'package:camera_marketing_app/screens/camera.dart';
 import 'package:camera_marketing_app/screens/categories.dart';
@@ -38,6 +40,8 @@ class CameraMarketingApp extends StatelessWidget {
           "/categories": (context) => const CategoriesScreen(),
           "/camera": (context) => const CameraScreen(),
           "/admin": (context) => const AdminPanelScreen(),
+          "/admin/company": (context) => const AdminCompanyScreen(),
+          "/admin/filter": (context) => const AdminFilterScreen(),
         },
       ),
     );
