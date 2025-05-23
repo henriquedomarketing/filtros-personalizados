@@ -43,6 +43,9 @@ exports.processVideo = onRequest(
         const outputFileName = `processed_${fileName}`;
         const tempOutputPath = path.join(os.tmpdir(), outputFileName);
         const outputStoragePath = `processed_videos/${outputFileName}`;
+        // Assuming bucket is initialized somewhere
+        const bucket = storage.bucket(functions.config().fb.bucket); // Replace with your bucket name or config variable
+
 
         // Process the video with FFmpeg
         await new Promise((resolve, reject) => {
@@ -64,14 +67,17 @@ exports.processVideo = onRequest(
         // Upload the processed video back to Firebase Storage
         await bucket.upload(tempOutputPath, {
             destination: outputStoragePath,
+            public: true, // Make the file publicly accessible
         });
         console.log('Processed video uploaded to', outputStoragePath);
+
+        const resultVideoUrl = `https://storage.googleapis.com/${bucket.name}/${outputStoragePath}`;
 
         // Clean up temporary files
         fs.unlinkSync(localVideoPath);
         fs.unlinkSync(localFilterPath);
         fs.unlinkSync(tempOutputPath);
 
-        res.status(200).send({ videoUrl, filterUrl });
+        res.status(200).send({ videoUrl: resultVideoUrl });
     },
 );
