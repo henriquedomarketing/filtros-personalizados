@@ -1,15 +1,10 @@
 import 'package:flutter/cupertino.dart';
 
-class FilterModel extends ChangeNotifier {
+class FilterModel {
   String name = "";
   String url = "";
 
   FilterModel({required this.name, required this.url});
-
-  void changeFilter(String newUrl) {
-    url = newUrl;
-    notifyListeners();
-  }
   
   factory FilterModel.fromJson(Map<String, dynamic> json) {
     return FilterModel(

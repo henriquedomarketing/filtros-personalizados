@@ -1,5 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:camera_marketing_app/models/filter_model.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:camera_marketing_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -45,13 +47,25 @@ class _CameraOverlayState extends State<CameraOverlay> {
           Positioned.fill(child: CustomPaint(painter: ThirdsGridPainter())),
           Positioned.fill(
             child: Opacity(
-              opacity: 0.5,
-              child: Consumer<FilterModel>(
-                builder: (context, filter, child) {
-                  if (filter.url == "") {
+              opacity: 1,
+              child: Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  final FilterModel? filter = authProvider.selectedFilter;
+                  if (filter == null || filter.url == "") {
                     return Container();
                   }
-                  return Image.asset(filter.url, fit: BoxFit.contain);
+                  return CachedNetworkImage(
+                    imageUrl: filter.url,
+                    fit: BoxFit.fill,
+                    cacheKey: filter.name,
+                    placeholder: (context, url) => const Center(
+                      child: SizedBox(
+                        height: 50,
+                        width: 50,
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => const Icon(Icons.error),);
                 },
               ),
             ),

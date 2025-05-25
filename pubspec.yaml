@@ -49,6 +49,7 @@ dependencies:
   firebase_auth:
   cloud_firestore:
   firebase_storage:
+  cached_network_image: 3.4.1
 
 dev_dependencies:
   flutter_test:
