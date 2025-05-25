@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 class CompanyModel {
   String name;
-  String login;
-  String password;
+  String? login;
+  String? password;
   List<FilterModel> filters;
 
   bool admin;
@@ -12,9 +12,9 @@ class CompanyModel {
 
   CompanyModel({
     required this.name,
-    required this.login,
-    required this.password,
     required this.filters,
+    this.login,
+    this.password,
     this.user,
     this.admin = false,
   });
@@ -22,8 +22,9 @@ class CompanyModel {
   factory CompanyModel.fromJson(Map<String, dynamic> json) {
     return CompanyModel(
       name: json['name'],
-      login: json['login'],
-      password: json['password'],
+      login: json.containsKey('login') ? json['login'] : null,
+      password: json.containsKey('password') ? json['password'] : null,
+      admin: json.containsKey('admin') ? json['admin'] : false,
       filters: (json['filters'] as List)
           .map((filterJson) => FilterModel.fromJson(filterJson))
           .toList(),
@@ -33,9 +34,10 @@ class CompanyModel {
   Map<String, dynamic> toJson() {
     return {
       'name': name,
-      'login': login,
-      'password': password,
+      'login': login ?? "",
+      'password': password ?? "",
       'filters': filters.map((filter) => filter.toJson()).toList(),
+      'admin': admin,
     };
   }
 

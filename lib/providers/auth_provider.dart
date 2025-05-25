@@ -22,14 +22,14 @@ class AuthProvider with ChangeNotifier {
       _loggedUser = user;
       _error = null;
       return user;
-    } on FirebaseAuthException catch (e) {
-      _loggedUser = null;
-      _error = e.toString();
-      return null;
-    } catch (e) {
-      _loggedUser = null;
-      _error = e.toString();
-      return null;
+    // } on FirebaseAuthException catch (e) {
+    //   _loggedUser = null;
+    //   _error = e.toString();
+    //   return null;
+    // } catch (e) {
+    //   _loggedUser = null;
+    //   _error = e.toString();
+    //   return null;
     } finally {
       _isLoading = false;
       notifyListeners();

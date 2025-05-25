@@ -1,8 +1,4 @@
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:1320874755.
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:3485984413.
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:3428694682.
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:2553350967.
-// Suggested code may be subject to a license. Learn more: ~LicenseLog:817786057.
+import 'package:camera_marketing_app/providers/admin_provider.dart';
 import 'package:camera_marketing_app/screens/admin_company.dart';
 import 'package:camera_marketing_app/screens/admin_filters.dart';
 import 'package:flutter/material.dart';
@@ -24,13 +20,15 @@ void main() async {
 class CameraMarketingApp extends StatelessWidget {
   const CameraMarketingApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider<AuthProvider>(
-      create: (_) => AuthProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
+        ChangeNotifierProvider<AdminProvider>(create: (_) => AdminProvider())
+      ],
       child: MaterialApp(
-        title: 'Flutter Demo',
+        title: 'Camera Marketing',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         ),

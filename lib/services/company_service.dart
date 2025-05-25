@@ -1,12 +1,15 @@
 import 'dart:io';
 
+import 'dart:convert';
 import 'package:camera_marketing_app/models/company_model.dart';
+import 'package:camera_marketing_app/models/filter_model.dart';
 import 'package:camera_marketing_app/types/firestore_types.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 const BUCKET_NAME = "filters";
+final JsonEncoder encoder = JsonEncoder.withIndent('  ');
 
 class CompanyService {
   static CollectionReference usersDb = 
@@ -21,26 +24,30 @@ class CompanyService {
     String name,
   ) async {
     try {
+      print("[REGISTER COMPANY] start");
       // Cria o usuário com e-mail e senha
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
 
+      print("[REGISTER COMPANY] created userCredential ${userCredential.toString()}");
       // Obtém o UID do usuário criado
       String uid = userCredential.user!.uid;
 
       // Salva informações adicionais no Firestore
-      ICompanyFirestore doc =
-          {'name': name, 'email': email, 'admin': false, 'filters': []}
-              as ICompanyFirestore;
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .set(doc as Map<String, dynamic>);
+      CompanyModel docModel = CompanyModel(name: name, login: email, admin: false, filters: []);
+      await usersDb.doc(uid).set(docModel);
+      print("[REGISTER COMPANY] saved doc to firestore");
+      print(encoder.convert(docModel.toJson()));
       print('Usuário registrado com sucesso!');
       return null;
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException catch (e, stackTrace) {
       print('Erro ao registrar usuário: ${e.message}');
+      print(stackTrace);
       return 'Erro ao registrar usuário: ${e.message}';
+    } catch (e, stackTrace) {
+      print('Erro ao registrar usuário: $e');
+      print(stackTrace);
+      return 'Erro desconhecido: $e';
     }
   }
 
@@ -51,6 +58,8 @@ class CompanyService {
         .signInWithEmailAndPassword(email: email, password: password);
     String uid = userCredential.user!.uid;
     final CompanyModel doc = await usersDb.doc(uid).get().then((s) => s.data() as CompanyModel);
+    print("LOGIN SUCESSFUL:");
+    print(encoder.convert(doc));
     return doc;
   }
 
@@ -58,7 +67,9 @@ class CompanyService {
     try {
       final file = File(filePath);
       final filterFileName = "${company.name}__$name.png";
-      final storageRef = FirebaseStorage.instance.ref().child(filterFileName);
+      final storageRef = FirebaseStorage.instance
+          .ref(BUCKET_NAME)
+          .child(filterFileName);
       await storageRef.putFile(file);
       final bucketUrl = await storageRef.getDownloadURL();
 
@@ -67,5 +78,17 @@ class CompanyService {
     } catch (e) {
       print(e);
     }
+  }
+
+  static Future<List<CompanyModel>> fetchCompanies() async {
+    await Future.delayed(Duration(seconds: 1));
+    return [
+      CompanyModel(name: "Empresa 1", filters: [
+        FilterModel(name: "ABC", url: ""),
+        FilterModel(name: "DEF", url: ""),
+      ]),
+      CompanyModel(name: "Empresa 2", filters: [])
+    ];
+    return await usersDb.where('admin', isEqualTo: false).get().then((s) => s.docs.map((s) => s.data() as CompanyModel).toList());
   }
 }
