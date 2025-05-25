@@ -9,6 +9,7 @@ class CompanyModel {
 
   bool admin;
   User? user;
+  String? uid;
 
   CompanyModel({
     required this.name,
@@ -17,6 +18,7 @@ class CompanyModel {
     this.password,
     this.user,
     this.admin = false,
+    this.uid,
   });
   
   factory CompanyModel.fromJson(Map<String, dynamic> json) {
@@ -25,6 +27,7 @@ class CompanyModel {
       login: json.containsKey('login') ? json['login'] : null,
       password: json.containsKey('password') ? json['password'] : null,
       admin: json.containsKey('admin') ? json['admin'] : false,
+      uid: json.containsKey('uid') ? json['uid'] : null,
       filters: (json['filters'] as List)
           .map((filterJson) => FilterModel.fromJson(filterJson))
           .toList(),
@@ -38,7 +41,7 @@ class CompanyModel {
       'password': password ?? "",
       'filters': filters.map((filter) => filter.toJson()).toList(),
       'admin': admin,
+      'uid': uid,
     };
   }
-
 }

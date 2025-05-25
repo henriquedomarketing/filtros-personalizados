@@ -8,7 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
-const BUCKET_NAME = "filters";
+const BUCKET_NAME = "filtros";
 final JsonEncoder encoder = JsonEncoder.withIndent('  ');
 
 class CompanyService {
@@ -73,22 +73,28 @@ class CompanyService {
       await storageRef.putFile(file);
       final bucketUrl = await storageRef.getDownloadURL();
 
-      IFilterFirestore filter = {'name': name, 'url': bucketUrl} as IFilterFirestore;
-      await usersDb.doc(company.user!.uid).update({'filters': FieldValue.arrayUnion([filter])});
-    } catch (e) {
+      final filter = {'name': name, 'url': bucketUrl} ;
+      await usersDb.doc(company.uid!).update({'filters': FieldValue.arrayUnion([filter])});
+    } catch (e, stackTrace) {
       print(e);
+      print(stackTrace);
     }
   }
 
   static Future<List<CompanyModel>> fetchCompanies() async {
-    await Future.delayed(Duration(seconds: 1));
-    return [
-      CompanyModel(name: "Empresa 1", filters: [
-        FilterModel(name: "ABC", url: ""),
-        FilterModel(name: "DEF", url: ""),
-      ]),
-      CompanyModel(name: "Empresa 2", filters: [])
-    ];
-    return await usersDb.where('admin', isEqualTo: false).get().then((s) => s.docs.map((s) => s.data() as CompanyModel).toList());
+    // await Future.delayed(Duration(seconds: 1));
+    // return [
+    //   CompanyModel(name: "Empresa 1", filters: [
+    //     FilterModel(name: "ABC", url: ""),
+    //     FilterModel(name: "DEF", url: ""),
+    //   ]),
+    //   CompanyModel(name: "Empresa 2", filters: [])
+    // ];
+    final usersRef = await usersDb.where('admin', isEqualTo: false).get();
+    final users = usersRef.docs;
+    return users.map((s) {
+      final data = s.data() as CompanyModel;
+      return CompanyModel.fromJson({...data.toJson(), 'uid': s.id});
+    }).toList();
   }
 }

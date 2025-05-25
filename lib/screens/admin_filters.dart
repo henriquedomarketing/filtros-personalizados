@@ -27,6 +27,47 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
     Provider.of<AdminProvider>(context, listen: false).fetchCompanies();
   }
 
+  void onCadastrar() async {
+    if (!mounted) return;
+    if (selectedCompany == null ||
+        (selectedCategory == null && _newCategoryController.text == "") ||
+        selectedImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Preencha todos os campos'),
+        ),
+      );
+      return;
+    }
+    try {
+      final categoryName = selectedCategory != null
+          ? selectedCategory?.name
+          : _newCategoryController.text;
+      final error = await Provider.of<AdminProvider>(context, listen: false)
+          .registerFilter(categoryName!, selectedImage!, selectedCompany!);
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao cadastrar filtro'),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Filtro cadastrado com sucesso'),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Erro desconhecido: ${e.toString()}"),
+        ),
+      );
+      Navigator.pop(context);
+    }
+  }
+
   Widget buildCompanySelect(BuildContext context, AdminProvider adminProvider) {
     if (adminProvider.isLoading) {
       return const Center(child: CircularProgressIndicator());
@@ -80,7 +121,8 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
     );
   }
 
-  Widget buildFilterImageSelector(BuildContext context, AdminProvider adminProvider) {
+  Widget buildFilterImageSelector(
+      BuildContext context, AdminProvider adminProvider) {
     if (!adminProvider.isLoading && selectedImage != null) {
       return GestureDetector(
         onTap: () {
@@ -89,12 +131,19 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
           });
         },
         child: Container(
-          height: 100,
           decoration: BoxDecoration(
             border: Border.all(color: Colors.grey),
             borderRadius: BorderRadius.circular(4.0),
           ),
-          child: Image.file(File(selectedImage!)),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 100,
+                child: Image.file(File(selectedImage!), fit: BoxFit.contain),
+              ),
+              Text("Toque para remover")
+            ],
+          ),
         ),
       );
     }
@@ -132,8 +181,7 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
     if (!mounted) return;
     final adminProvider = Provider.of<AdminProvider>(context, listen: false);
     final CompanyModel? company = value != null
-        ? adminProvider.companies
-        .firstWhere((company) => company.name == value)
+        ? adminProvider.companies.firstWhere((company) => company.name == value)
         : null;
     setState(() {
       selectedCompany = company;
@@ -143,8 +191,7 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
 
   void onSelectCategoryName(String? value) {
     final FilterModel? category = value != null
-        ? selectedCompany?.filters
-        .firstWhere((filter) => filter.name == value)
+        ? selectedCompany?.filters.firstWhere((filter) => filter.name == value)
         : null;
     setState(() {
       selectedCategory = category;
@@ -212,12 +259,12 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
                 const Text('UPLOAD FILTRO'),
                 buildFilterImageSelector(context, adminProvider),
                 const SizedBox(height: 24.0),
-                ElevatedButton(
-                  onPressed: () {
-                    // TODO: Handle cadastrar button press
-                  },
-                  child: const Text('CADASTRAR'),
-                ),
+                adminProvider.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : ElevatedButton(
+                        onPressed: onCadastrar,
+                        child: const Text('CADASTRAR'),
+                      ),
               ],
             ),
           );
