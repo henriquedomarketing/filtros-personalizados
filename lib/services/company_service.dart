@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 const BUCKET_NAME = "filtros";
+const BANNER_FILENAME = "banner_800";
 final JsonEncoder encoder = JsonEncoder.withIndent('  ');
 
 final MOCK_COMPANY = CompanyModel(filters: [
@@ -104,5 +105,21 @@ class CompanyService {
       final data = s.data() as CompanyModel;
       return CompanyModel.fromJson({...data.toJson(), 'uid': s.id});
     }).toList();
+  }
+
+  static Future<bool> uploadBanner(String imagePath) async {
+    try {
+      final file = File(imagePath);
+      final storageRef = FirebaseStorage.instance
+          .ref("/")
+          .child(BANNER_FILENAME);
+      await storageRef.putFile(file);
+      print('Banner uploaded successfully!');
+      return true;
+    } catch (e, stackTrace) {
+      print('Error uploading banner: $e');
+      print(stackTrace);
+      return false;
+    }
   }
 }

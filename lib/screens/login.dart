@@ -1,8 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camera_marketing_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:provider/provider.dart';
 
 import '../models/company_model.dart';
+import '../services/company_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,11 +21,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _keyboardVisible = false;
 
+  late Future<String?> futureBannerUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    futureBannerUrl = _loadBanner();
+  }
+
   @override
   void dispose() {
     _loginController.dispose();
     _senhaController.dispose();
     super.dispose();
+  }
+
+  Future<String?> _loadBanner() async {
+    try {
+      final ref = FirebaseStorage.instance.ref().child(BANNER_FILENAME);
+      final url = await ref.getDownloadURL();
+      return url;
+    } catch (e) {
+      print('Error loading banner: $e');
+      return null;
+    }
   }
 
   void onLogin(BuildContext context) async {
@@ -57,13 +79,26 @@ class _LoginScreenState extends State<LoginScreen> {
           bottomRight: Radius.circular(30.0),
         ),
         child: Container(
-          color: Colors.white,
-          child: Image.asset(
-            'assets/banner800.jpg', // TODO: get banner image from storage
-            fit: BoxFit.fitWidth,
-            width: double.infinity,
-          ),
-        ),
+            color: Colors.white,
+            child: FutureBuilder<String?>(
+              future: futureBannerUrl,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError || snapshot.data == null) {
+                  return const Center(child: Icon(Icons.error)); // Placeholder for error or no banner
+                } else {
+                  return CachedNetworkImage(
+                    imageUrl: snapshot.data!,
+                    cacheKey: "banner800",
+                    fit: BoxFit.fitWidth,
+                    width: double.infinity,
+                    placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                    errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
+                  );
+                }
+              },
+            )),
       ),
     );
   }

@@ -1,7 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
-class AdminPanelScreen extends StatelessWidget {
+import '../services/company_service.dart';
+
+class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});
+
+  @override
+  State<AdminPanelScreen> createState() => _AdminPanelScreenState();
+}
+
+class _AdminPanelScreenState extends State<AdminPanelScreen> {
+
+  bool loadingBanner = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   void onCadastrarEmpresa(BuildContext context) {
     Navigator.of(context).pushNamed('/admin/company');
@@ -11,7 +27,36 @@ class AdminPanelScreen extends StatelessWidget {
     Navigator.of(context).pushNamed('/admin/filter');
   }
 
-  void onUploadBanner() {}
+  Future<void> onUploadBanner(BuildContext context) async {
+    if (loadingBanner) return;
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+
+    if (image == null || !mounted) {
+      return;
+    }
+    setState(() {
+      loadingBanner = true;
+    });
+    print('Image path: ${image.path}');
+    try {
+      final result = await CompanyService.uploadBanner(image.path);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result
+              ? 'Banner carregado com sucesso'
+              : 'Erro ao carregar banner'),
+        ),
+      );
+    } catch (e, stackTrace) {
+      print(e);
+      print(stackTrace);
+    } finally {
+      setState(() {
+        loadingBanner = false;
+      });
+    }
+  }
 
   void onGoBack(BuildContext context) {
     Navigator.of(context).pop();
@@ -84,18 +129,20 @@ class AdminPanelScreen extends StatelessWidget {
             SizedBox(
               height: 80,
               child: ElevatedButton(
-                onPressed: onUploadBanner,
+                onPressed: () => onUploadBanner(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.indigo,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(5),
                   ),
                 ),
-                child: Text(
-                  'UPLOAD BANNER 800x800',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
+                child: loadingBanner
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        'UPLOAD BANNER 800x800',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
               ),
             ),
             SizedBox(height: 32),
