@@ -10,8 +10,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:open_file_manager/open_file_manager.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../providers/auth_provider.dart';
 
@@ -97,6 +99,26 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
+  void onPreviewShare(String filePath) {
+    SharePlus.instance.share(ShareParams(
+      text: "Confira!",
+      files: [XFile(filePath)],
+    ));
+  }
+
+  void onPreviewSave(String filePath) async {
+    final success = await copyFileToSaveDirectory(filePath);
+    if (success) {
+      openFileManager(
+        androidConfig: AndroidConfig(
+          folderType: AndroidFolderType.other,
+          folderPath: (await getSaveDirectory())!.path,
+        ),
+        iosConfig: IosConfig(folderPath: (await getSaveDirectory())!.path),
+      );
+    }
+  }
+
   Future<void> onUploadImage(BuildContext context) async {
     if (getSelectedFilter() == null || getSelectedFilter()?.url == "") {
       showNoFilterMessage();
@@ -128,6 +150,15 @@ class _CameraScreenState extends State<CameraScreen> {
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: Text('Fechar'),
+              ),
+              SizedBox(width: 15),
+              TextButton(
+                onPressed: () => onPreviewSave(filePath),
+                child: Text('SALVAR'),
+              ),
+              IconButton(
+                icon: Icon(Icons.share),
+                onPressed: () => onPreviewShare(filePath),
               ),
             ],
           );
@@ -233,6 +264,9 @@ class _CameraScreenState extends State<CameraScreen> {
 
     // Save the composite image
     final directory = await getSaveDirectory();
+    if (directory == null) {
+      return null;
+    }
     final timestamp = DateTime
         .now()
         .millisecondsSinceEpoch;
@@ -245,10 +279,6 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _takePicture(String filterPath,
       CameraController controller,) async {
-    if (getSelectedFilter()?.url == "") {
-      showNoFilterMessage();
-      return;
-    }
     try {
       setState(() {
         _isProcessingCapture = true;
@@ -257,11 +287,6 @@ class _CameraScreenState extends State<CameraScreen> {
       controller.setExposureMode(ExposureMode.auto);
       final image = await controller.takePicture();
       // controller.pausePreview();
-
-      if (filterPath == "") {
-        copyFileToSaveDirectory(image.path);
-        return;
-      }
       final processedImagePath = await _processImage(image.path, filterPath);
 
       if (processedImagePath != null) {
@@ -318,6 +343,10 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void _onTapCapture(CameraController controller) {
+    if (getSelectedFilter() == null) {
+      showNoFilterMessage();
+      return;
+    }
     if (_isRecording) {
       _stopVideoRecording(controller);
     } else {
@@ -331,7 +360,7 @@ class _CameraScreenState extends State<CameraScreen> {
     openFileManager(
       androidConfig: AndroidConfig(
         folderType: AndroidFolderType.other,
-        folderPath: docsDir.path,
+        folderPath: docsDir!.path,
       ),
       iosConfig: IosConfig(folderPath: docsDir.path),
     );
@@ -514,21 +543,30 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  void copyFileToSaveDirectory(String path) async {
+  Future<bool> copyFileToSaveDirectory(String path) async {
     final directory = await getSaveDirectory();
     final fileName = path
         .split('/')
         .last;
-    final newPath = '${directory.path}/$fileName';
+    final newPath = '${directory!.path}$fileName';
     try {
       await File(path).copy(newPath);
       print('File copied to: $newPath');
+      return true;
     } catch (e) {
       print('Error copying file: $e');
+      return false;
     }
   }
 
-  Future<Directory> getSaveDirectory() async {
-    return getApplicationDocumentsDirectory();
+  // Get the directory to save the images
+  Future<Directory?> getSaveDirectory() async {
+    final dirPath = "/storage/emulated/0/Download/cameramarketing";
+    PermissionStatus status = await Permission.storage.status;
+    if (status.isDenied) {
+      status = await Permission.storage.request();
+    }
+    await Directory(dirPath).create(recursive: true);
+    return Directory(dirPath);
   }
 }

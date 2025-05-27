@@ -1,15 +1,22 @@
+import 'dart:convert';
 import 'dart:io';
 
-import 'dart:convert';
 import 'package:camera_marketing_app/models/company_model.dart';
 import 'package:camera_marketing_app/models/filter_model.dart';
-import 'package:camera_marketing_app/types/firestore_types.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 const BUCKET_NAME = "filtros";
 final JsonEncoder encoder = JsonEncoder.withIndent('  ');
+
+final MOCK_COMPANY = CompanyModel(filters: [
+  FilterModel(name: "My Filter", url: "https://www.gstatic.com/mobilesdk/240501_mobilesdk/firebase_28dp.png"),
+], login: "admin@admin.com", name: "ADMIN", admin: false);
+
+final MOCK_ADMIN = CompanyModel(filters: [
+  FilterModel(name: "My Filter", url: "https://www.gstatic.com/mobilesdk/240501_mobilesdk/firebase_28dp.png"),
+], login: "admin@admin.com", name: "ADMIN", admin: true);
 
 class CompanyService {
   static CollectionReference usersDb = 
@@ -52,8 +59,8 @@ class CompanyService {
   }
 
   static Future<CompanyModel?> login(String email, String password) async {
-    // await Future.delayed(Duration(seconds: 1));
-    // return CompanyModel(filters: [], login: email, name: "ADMIN", password: password, admin: true);
+    await Future.delayed(Duration(seconds: 1));
+    return MOCK_COMPANY;
     UserCredential userCredential = await FirebaseAuth.instance
         .signInWithEmailAndPassword(email: email, password: password);
     String uid = userCredential.user!.uid;

@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 class CompanyModel {
   String name;
   String? login;
-  String? password;
   List<FilterModel> filters;
 
   bool admin;
@@ -15,7 +14,6 @@ class CompanyModel {
     required this.name,
     required this.filters,
     this.login,
-    this.password,
     this.user,
     this.admin = false,
     this.uid,
@@ -25,7 +23,6 @@ class CompanyModel {
     return CompanyModel(
       name: json['name'],
       login: json.containsKey('login') ? json['login'] : null,
-      password: json.containsKey('password') ? json['password'] : null,
       admin: json.containsKey('admin') ? json['admin'] : false,
       uid: json.containsKey('uid') ? json['uid'] : null,
       filters: (json['filters'] as List)
@@ -38,7 +35,6 @@ class CompanyModel {
     return {
       'name': name,
       'login': login ?? "",
-      'password': password ?? "",
       'filters': filters.map((filter) => filter.toJson()).toList(),
       'admin': admin,
       'uid': uid,
