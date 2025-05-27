@@ -47,7 +47,7 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
       final name = "";
       final categoryName = selectedCategory ?? _newCategoryController.text;
       final error = await Provider.of<AdminProvider>(context, listen: false)
-          .registerFilter(name, selectedImage!, categoryName!, selectedCompany!);
+          .registerFilter(name, selectedImage!, categoryName, selectedCompany!, order: filterNumber);
       if (error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

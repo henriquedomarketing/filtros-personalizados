@@ -70,7 +70,7 @@ class CompanyService {
     return doc;
   }
 
-  static Future<void> createFilterForCompany(String name, String filePath, String category, CompanyModel company) async {
+  static Future<void> createFilterForCompany(String name, String filePath, String category, CompanyModel company, {int order = 0}) async {
     try {
       final file = File(filePath);
       final filterFileName = "${company.name}__$name.png";
@@ -80,8 +80,9 @@ class CompanyService {
       await storageRef.putFile(file);
       final bucketUrl = await storageRef.getDownloadURL();
 
-      final filter = {'name': name, 'url': bucketUrl, 'category': category} ;
-      await usersDb.doc(company.uid!).update({'filters': FieldValue.arrayUnion([filter])});
+      final orderedFilters = company.filters;
+      orderedFilters.insert(order, FilterModel(name: name, url: bucketUrl, category: category));
+      await usersDb.doc(company.uid!).update({'filters': orderedFilters.map((f) => f.toJson()).toList()});
     } catch (e, stackTrace) {
       print(e);
       print(stackTrace);
