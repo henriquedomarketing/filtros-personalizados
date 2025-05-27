@@ -18,9 +18,15 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     Navigator.of(context).pop();
   }
 
+  void onPressCategory(String categoryName) {
+    Navigator.pushNamed(context, "/camera",
+        arguments: {"categoryName": categoryName});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(builder: (context, authProvider, child) {
+      print(authProvider.loggedUser?.categories);
       return Scaffold(
         backgroundColor: Colors.indigo,
         appBar: AppBar(
@@ -37,25 +43,22 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
           ),
         ),
         body: authProvider.loggedUser != null &&
-                authProvider.loggedUser!.filters.isNotEmpty
+                authProvider.loggedUser!.categories.isNotEmpty
             ? ListView.builder(
-                itemCount: authProvider.loggedUser!.filters.length,
+                itemCount: authProvider.loggedUser!.categories.length,
                 itemBuilder: (BuildContext context, int index) {
-                  final FilterModel filter =
-                      authProvider.loggedUser!.filters[index];
+                  final String categoryName =
+                    authProvider.loggedUser!.categories[index];
                   return Padding(
                     padding: const EdgeInsets.symmetric(
                         vertical: 8.0, horizontal: 16.0),
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, "/camera",
-                            arguments: {"filterIndex": index});
-                      },
+                      onPressed: () => onPressCategory(categoryName),
                       style: ElevatedButton.styleFrom(
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(5)),
                       ),
-                      child: Text(filter.name),
+                      child: Text(categoryName),
                     ),
                   );
                 },

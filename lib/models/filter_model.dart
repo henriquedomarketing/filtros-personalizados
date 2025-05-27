@@ -1,14 +1,14 @@
-import 'package:flutter/cupertino.dart';
-
 class FilterModel {
   String name = "";
+  String category = "";
   String url = "";
 
-  FilterModel({required this.name, required this.url});
+  FilterModel({required this.name, required this.url, required this.category});
   
   factory FilterModel.fromJson(Map<String, dynamic> json) {
     return FilterModel(
       name: json['name'],
+      category: json['category'],
       url: json['url'],
     );
   }
@@ -16,6 +16,7 @@ class FilterModel {
   Map<String, dynamic> toJson() {
     return {
       'name': name,
+      'category': category,
       'url': url,
     };
   }

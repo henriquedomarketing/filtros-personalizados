@@ -18,6 +18,12 @@ class CompanyModel {
     this.admin = false,
     this.uid,
   });
+
+  List<String> get categories => filters.map((filter) => filter.category).toSet().toList();
+
+  List<FilterModel> getFiltersByCategory(String category) {
+    return filters.where((filter) => filter.category == category).toList();
+  }
   
   factory CompanyModel.fromJson(Map<String, dynamic> json) {
     return CompanyModel(

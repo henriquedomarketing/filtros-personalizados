@@ -37,12 +37,12 @@ class AdminProvider extends ChangeNotifier {
     }
   }
 
-  Future<String?> registerFilter(String name, String filePath, CompanyModel company) async {
+  Future<String?> registerFilter(String name, String filePath, String category, CompanyModel company) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
-      await CompanyService.createFilterForCompany(name, filePath, company);
+      await CompanyService.createFilterForCompany(name, filePath, category, company);
       return null;
     } catch (e, stackTrace) {
       print(e);

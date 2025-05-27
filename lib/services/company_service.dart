@@ -11,11 +11,11 @@ const BUCKET_NAME = "filtros";
 final JsonEncoder encoder = JsonEncoder.withIndent('  ');
 
 final MOCK_COMPANY = CompanyModel(filters: [
-  FilterModel(name: "My Filter", url: "https://www.gstatic.com/mobilesdk/240501_mobilesdk/firebase_28dp.png"),
+  FilterModel(name: "My Filter", url: "https://www.gstatic.com/mobilesdk/240501_mobilesdk/firebase_28dp.png", category: "Vendas"),
 ], login: "admin@admin.com", name: "ADMIN", admin: false);
 
 final MOCK_ADMIN = CompanyModel(filters: [
-  FilterModel(name: "My Filter", url: "https://www.gstatic.com/mobilesdk/240501_mobilesdk/firebase_28dp.png"),
+  FilterModel(name: "My Filter", url: "https://www.gstatic.com/mobilesdk/240501_mobilesdk/firebase_28dp.png", category: "Vendas"),
 ], login: "admin@admin.com", name: "ADMIN", admin: true);
 
 class CompanyService {
@@ -59,8 +59,8 @@ class CompanyService {
   }
 
   static Future<CompanyModel?> login(String email, String password) async {
-    await Future.delayed(Duration(seconds: 1));
-    return MOCK_COMPANY;
+    // await Future.delayed(Duration(seconds: 1));
+    // return MOCK_ADMIN;
     UserCredential userCredential = await FirebaseAuth.instance
         .signInWithEmailAndPassword(email: email, password: password);
     String uid = userCredential.user!.uid;
@@ -70,7 +70,7 @@ class CompanyService {
     return doc;
   }
 
-  static Future<void> createFilterForCompany(String name, String filePath, CompanyModel company) async {
+  static Future<void> createFilterForCompany(String name, String filePath, String category, CompanyModel company) async {
     try {
       final file = File(filePath);
       final filterFileName = "${company.name}__$name.png";
@@ -80,7 +80,7 @@ class CompanyService {
       await storageRef.putFile(file);
       final bucketUrl = await storageRef.getDownloadURL();
 
-      final filter = {'name': name, 'url': bucketUrl} ;
+      final filter = {'name': name, 'url': bucketUrl, 'category': category} ;
       await usersDb.doc(company.uid!).update({'filters': FieldValue.arrayUnion([filter])});
     } catch (e, stackTrace) {
       print(e);

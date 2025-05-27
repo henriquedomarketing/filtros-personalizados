@@ -51,6 +51,7 @@ dependencies:
   firebase_storage:
   cached_network_image: 3.4.1
   share_plus: 11.0.0
+  flutter_spinbox: ^0.13.1
 
 dev_dependencies:
   flutter_test:

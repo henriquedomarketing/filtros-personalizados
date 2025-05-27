@@ -3,24 +3,23 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:camera_marketing_app/components/camera_overlay.dart';
 import 'package:camera_marketing_app/models/filter_model.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:open_file_manager/open_file_manager.dart';
-import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
-import 'package:video_player/video_player.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:video_player/video_player.dart';
 
 import '../providers/auth_provider.dart';
 
 enum CameraMode { front, back }
 
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  final String categoryName;
+  const CameraScreen({super.key, required this.categoryName});
 
   @override
   _CameraScreenState createState() => _CameraScreenState();
@@ -39,6 +38,7 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<CameraController>? _currentCameraFuture;
 
   bool _isRecording = false;
+  List<CameraController> _toDispose = [];
 
   @override
   void initState() {
@@ -51,6 +51,10 @@ class _CameraScreenState extends State<CameraScreen> {
     // _backCameraController?.dispose();
     // _frontCameraController?.dispose();
     // _videoPlayerController?.dispose();
+    for (final controller in _toDispose) {
+      controller.dispose();
+    }
+    _toDispose.clear();
     super.dispose();
   }
 
@@ -87,7 +91,15 @@ class _CameraScreenState extends State<CameraScreen> {
     });
   }
 
+  Future<void> disposeCurrentController() async {
+    final controller = await _currentCameraFuture;
+    if (controller != null && !_toDispose.contains(controller)) {
+      _toDispose.add(controller);
+    }
+  }
+
   Future<CameraController> loadController(CameraDescription camera) async {
+    await disposeCurrentController();
     final controller = CameraController(camera, ResolutionPreset.high);
     await controller.initialize();
     return controller;
@@ -109,13 +121,14 @@ class _CameraScreenState extends State<CameraScreen> {
   void onPreviewSave(String filePath) async {
     final success = await copyFileToSaveDirectory(filePath);
     if (success) {
-      openFileManager(
+      await openFileManager(
         androidConfig: AndroidConfig(
           folderType: AndroidFolderType.other,
           folderPath: (await getSaveDirectory())!.path,
         ),
         iosConfig: IosConfig(folderPath: (await getSaveDirectory())!.path),
       );
+      Navigator.of(context).pop();
     }
   }
 
@@ -179,6 +192,12 @@ class _CameraScreenState extends State<CameraScreen> {
     final loadVideoFuture = loadVideo();
     if (mounted) {
       showDialog(
+        routeSettings: RouteSettings(
+          // This ensures that when the dialog is popped, the controller is disposed
+          // by checking if the current route is active.
+          name: 'videoPreviewDialog',
+        ),
+        barrierDismissible: false, // Prevent dismissing by tapping outside
         context: context,
         builder: (BuildContext context) {
           return FutureBuilder<VideoPlayerController>(
@@ -201,35 +220,44 @@ class _CameraScreenState extends State<CameraScreen> {
                   ),
                 );
               }
-              return AlertDialog(
-                content: content,
-                actions: <Widget>[
-                  IconButton(
-                    onPressed: () {
-                      controller?.play();
-                    },
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.transparent,
+              return PopScope(
+                canPop: false, // Prevent back button from closing dialog directly
+                onPopInvoked: (didPop) {
+                  if (didPop) return; // Already handled by Navigator.pop
+                  controller?.pause();
+                  controller?.dispose();
+                  Navigator.of(context).pop();
+                },
+                child: AlertDialog(
+                  content: content,
+                  actions: <Widget>[
+                    IconButton(
+                      onPressed: () {
+                        controller?.play();
+                      },
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                      ),
+                      icon: Icon(
+                        Icons.play_circle_fill,
+                        color: controller != null ? null : Colors.grey,
+                      ),
                     ),
-                    icon: Icon(
-                      Icons.play_circle_fill,
-                      color: controller != null ? null : Colors.grey,
+                    TextButton(
+                      onPressed: () {
+                        controller?.pause();
+                        controller?.dispose();
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Fechar'),
                     ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      controller?.pause();
-                      controller?.dispose();
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Fechar'),
-                  ),
-                ],
+                  ],
+                ),
               );
             },
           );
         },
-      );
+      ).then((_) => print("Video preview dialog closed")); // Optional: for debugging
     }
   }
 
@@ -457,8 +485,9 @@ class _CameraScreenState extends State<CameraScreen> {
         width: 70, // Adjust width as needed
         child: Consumer<AuthProvider>(
           builder: (context, authProvider, child) {
+            final filterList = authProvider.loggedUser?.getFiltersByCategory(widget.categoryName);
             return ListView.builder(
-              itemCount: authProvider.loggedUser!.filters.length + 1,
+              itemCount: filterList!.length + 1,
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return Padding(
@@ -470,11 +499,11 @@ class _CameraScreenState extends State<CameraScreen> {
                     ),
                   );
                 }
-                final FilterModel? filter = authProvider.loggedUser?.filters[index - 1];
+                final FilterModel filter = filterList[index - 1];
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4.0),
                   child: ElevatedButton(
-                    onPressed: () => onFilterPressed(index - 1, filter!),
+                    onPressed: () => onFilterPressed(index - 1, filter),
                     style: buttonStyle,
                     child: Text('${index}', style: textStyle),
                   ),

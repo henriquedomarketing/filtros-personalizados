@@ -13,6 +13,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _loginController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _senhaController = TextEditingController();
 
   bool _keyboardVisible = false;
@@ -26,6 +27,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void onLogin(BuildContext context) async {
     // try {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
       CompanyModel? result = await Provider.of<AuthProvider>(
         context,
         listen: false,
@@ -86,66 +90,83 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: Colors.transparent,
                       padding: const EdgeInsets.all(24.0),
                       child: Center(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              TextField(
-                                controller: _loginController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Login',
-                                  fillColor: Colors.white,
-                                  filled: true,
-                                  border: UnderlineInputBorder(),
+                        child: Form(
+                          key: _formKey,
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                TextFormField(
+                                  controller: _loginController,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Login',
+                                    fillColor: Colors.white,
+                                    filled: true,
+                                    errorStyle: TextStyle(color: Colors.orangeAccent),
+                                    border: UnderlineInputBorder(),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Digite seu e-mail.';
+                                    }
+                                    return null;
+                                  },
                                 ),
-                              ),
-                              const SizedBox(height: 16.0),
-                              TextField(
-                                controller: _senhaController,
-                                obscureText: true,
-                                decoration: const InputDecoration(
-                                  labelText: 'Senha',
-                                  fillColor: Colors.white,
-                                  filled: true,
-                                  border: UnderlineInputBorder(),
+                                const SizedBox(height: 16.0),
+                                TextFormField(
+                                  controller: _senhaController,
+                                  obscureText: true,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Senha',
+                                    fillColor: Colors.white,
+                                    filled: true,
+                                    errorStyle: TextStyle(color: Colors.orangeAccent),
+                                    border: UnderlineInputBorder(),
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Digite sua senha.';
+                                    }
+                                    return null;
+                                  },
                                 ),
-                              ),
-                              const SizedBox(height: 24.0),
-                              ElevatedButton(
-                                onPressed: () => onLogin(context),
-                                child:
-                                    (authProvider.isLoading
-                                        ? const SizedBox(
-                                          width: 24,
-                                          height: 24,
-                                          child: CircularProgressIndicator(),
-                                        )
-                                        : const Text('Entrar')),
-                              ),
-                              const SizedBox(height: 16.0),
-                              TextButton(
-                                onPressed: onSupport,
-                                child: const Text(
-                                  'SUPORTE',
-                                  style: TextStyle(color: Colors.white),
+                                const SizedBox(height: 24.0),
+                                ElevatedButton(
+                                  onPressed: () => onLogin(context),
+                                  child:
+                                      (authProvider.isLoading
+                                          ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(),
+                                          )
+                                          : const Text('Entrar')),
                                 ),
-                              ),
-                              authProvider.error != null
-                                  ? Container(
-                                    color: Colors.red.withValues(alpha: 0.25),
-                                    margin: const EdgeInsets.only(top: 10),
-                                    child: Text(
-                                      authProvider.error!,
-                                      style: const TextStyle(
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 18,
+                                const SizedBox(height: 16.0),
+                                TextButton(
+                                  onPressed: onSupport,
+                                  child: const Text(
+                                    'SUPORTE',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                                authProvider.error != null
+                                    ? Container(
+                                      color: Colors.red.withValues(alpha: 0.25),
+                                      margin: const EdgeInsets.only(top: 10),
+                                      child: Text(
+                                        authProvider.error!,
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  )
-                                  : Container(),
-                            ],
+                                    )
+                                    : Container(),
+                              ],
+                            ),
                           ),
                         ),
                       ),

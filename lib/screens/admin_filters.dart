@@ -3,7 +3,9 @@ import 'dart:io';
 import 'package:camera_marketing_app/providers/admin_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_spinbox/material.dart';
 import '../models/company_model.dart';
 import '../models/filter_model.dart';
 
@@ -16,9 +18,11 @@ class AdminFilterScreen extends StatefulWidget {
 
 class _AdminFilterScreenState extends State<AdminFilterScreen> {
   CompanyModel? selectedCompany;
-  FilterModel? selectedCategory;
+  String? selectedCategory;
   final TextEditingController _newCategoryController = TextEditingController();
   String? selectedImage;
+
+  int filterNumber = 0;
 
   @override
   void initState() {
@@ -40,11 +44,10 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
       return;
     }
     try {
-      final categoryName = selectedCategory != null
-          ? selectedCategory?.name
-          : _newCategoryController.text;
+      final name = "";
+      final categoryName = selectedCategory ?? _newCategoryController.text;
       final error = await Provider.of<AdminProvider>(context, listen: false)
-          .registerFilter(categoryName!, selectedImage!, selectedCompany!);
+          .registerFilter(name, selectedImage!, categoryName!, selectedCompany!);
       if (error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -95,11 +98,11 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
       return const Text('Nenhuma empresa selecionada');
     }
     bool isAddingNew = _newCategoryController.text != "";
-    var items = selectedCompany?.filters
-        .map((filter) =>
-            DropdownMenuItem(value: filter.name, child: Text(filter.name)))
+    var items = selectedCompany?.categories
+        .map((categoryName) =>
+            DropdownMenuItem(value: categoryName, child: Text(categoryName)))
         .toList();
-    var selectedValue = isAddingNew ? "@@new" : selectedCategory?.name;
+    var selectedValue = isAddingNew ? "@@new" : selectedCategory;
     if (isAddingNew) {
       items?.insert(
           0,
@@ -190,11 +193,11 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
   }
 
   void onSelectCategoryName(String? value) {
-    final FilterModel? category = value != null
+    final FilterModel? filter = value != null
         ? selectedCompany?.filters.firstWhere((filter) => filter.name == value)
         : null;
     setState(() {
-      selectedCategory = category;
+      selectedCategory = filter?.category ?? "";
     });
   }
 
@@ -240,20 +243,13 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
                 ),
                 const SizedBox(height: 16.0),
                 const Text('NUMERO DO FILTRO'),
-                DropdownButtonFormField<String>(
-                  items: const [
-                    // TODO: Add filter numbers here
-                    DropdownMenuItem(
-                        value: 'Filter 1', child: Text('Filter 1')),
-                    DropdownMenuItem(
-                        value: 'Filter 2', child: Text('Filter 2')),
-                  ],
-                  onChanged: (value) {
-                    // TODO: Handle filter number selection
-                  },
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                  ),
+                SpinBox(
+                  min: 1,
+                  max: 100,
+                  value: filterNumber.toDouble(),
+                  onChanged: (value) => setState(() {
+                    filterNumber = value.toInt();
+                  }),
                 ),
                 const SizedBox(height: 16.0),
                 const Text('UPLOAD FILTRO'),
