@@ -2,8 +2,6 @@ import 'package:camera_marketing_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/filter_model.dart';
-
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
 

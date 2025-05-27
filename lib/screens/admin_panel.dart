@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 
+import '../providers/config_provider.dart';
 import '../services/company_service.dart';
 
 class AdminPanelScreen extends StatefulWidget {
@@ -13,6 +16,7 @@ class AdminPanelScreen extends StatefulWidget {
 class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
   bool loadingBanner = false;
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -60,6 +64,43 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
   void onGoBack(BuildContext context) {
     Navigator.of(context).pop();
+  }
+
+  void onSupportChanged(String value, ConfigProvider configProvider) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(seconds: 2), () {
+      onSupportSaved(value, configProvider);
+    });
+  }
+
+  void onSupportSaved(String value, ConfigProvider configProvider) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Deseja salvar o link do suporte?"),
+        action: SnackBarAction(
+          label: "Salvar",
+          onPressed: () async {
+            await configProvider.setSupportUrl(value);
+            print("Link do suporte salvo: $value");
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                const SnackBar(content: Text("Salvo com sucesso")),
+              );
+          },
+        ),
+      ));
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
   }
 
   @override
@@ -151,14 +192,20 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
-            TextFormField(
-              initialValue: 'HTTP://LINKDOSUPPORT.COM.BR',
-              decoration: InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 10),
-              ),
-            ),
+            Consumer<ConfigProvider>(
+              builder: (context, configProvider, child) {
+                return TextFormField(
+                  initialValue: configProvider.config?.supportUrl ?? "",
+                  onChanged: (value) => onSupportChanged(value, configProvider),
+                  decoration: InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                  ),
+                );
+              }
+            )
           ],
+
         ),
       ),
     );

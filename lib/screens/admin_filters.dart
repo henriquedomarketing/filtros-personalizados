@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:camera_marketing_app/providers/admin_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter_spinbox/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+
 import '../models/company_model.dart';
 import '../models/filter_model.dart';
 

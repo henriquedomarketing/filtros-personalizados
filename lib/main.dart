@@ -1,4 +1,5 @@
 import 'package:camera_marketing_app/providers/admin_provider.dart';
+import 'package:camera_marketing_app/providers/config_provider.dart';
 import 'package:camera_marketing_app/screens/admin_company.dart';
 import 'package:camera_marketing_app/screens/admin_filters.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -27,7 +28,8 @@ class CameraMarketingApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
-        ChangeNotifierProvider<AdminProvider>(create: (_) => AdminProvider())
+        ChangeNotifierProvider<AdminProvider>(create: (_) => AdminProvider()),
+        ChangeNotifierProvider<ConfigProvider>(create: (_) => ConfigProvider()..fetchConfig()),
       ],
       child: MaterialApp(
         title: 'Camera Marketing',

@@ -1,9 +1,10 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camera_marketing_app/providers/auth_provider.dart';
-import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../components/support_button.dart';
 import '../models/company_model.dart';
 import '../services/company_service.dart';
 
@@ -178,13 +179,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                           : const Text('Entrar')),
                                 ),
                                 const SizedBox(height: 16.0),
-                                TextButton(
-                                  onPressed: onSupport,
-                                  child: const Text(
-                                    'SUPORTE',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                ),
+                                SupportButton(),
                                 authProvider.error != null
                                     ? Container(
                                       color: Colors.red.withValues(alpha: 0.25),
