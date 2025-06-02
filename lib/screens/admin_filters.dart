@@ -33,9 +33,9 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
 
   void onCadastrar() async {
     if (!mounted) return;
-    if (selectedCompany == null ||
-        (selectedCategory == null && _newCategoryController.text == "") ||
-        selectedImage == null) {
+    final newCategoryText = _newCategoryController.text;
+    final hasCategory = selectedCategory != null || newCategoryText != "";
+    if (selectedCompany == null || !hasCategory) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Preencha todos os campos'),
@@ -60,6 +60,7 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
             content: Text('Filtro cadastrado com sucesso'),
           ),
         );
+        Navigator.pop(context);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -193,11 +194,11 @@ class _AdminFilterScreenState extends State<AdminFilterScreen> {
   }
 
   void onSelectCategoryName(String? value) {
-    final FilterModel? filter = value != null
-        ? selectedCompany?.filters.firstWhere((filter) => filter.name == value)
+    final String? category = value != null
+        ? selectedCompany?.categories.firstWhere((category) => category == value)
         : null;
     setState(() {
-      selectedCategory = filter?.category ?? "";
+      selectedCategory = category ?? "";
     });
   }
 

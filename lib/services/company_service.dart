@@ -74,7 +74,8 @@ class CompanyService {
   static Future<void> createFilterForCompany(String name, String filePath, String category, CompanyModel company, {int order = 0}) async {
     try {
       final file = File(filePath);
-      final filterFileName = "${company.name}__$name.png";
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filterFileName = "${company.name}__${name}__$timestamp.png";
       final storageRef = FirebaseStorage.instance
           .ref(BUCKET_NAME)
           .child(filterFileName);

@@ -48,13 +48,14 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   void dispose() {
-    // _backCameraController?.dispose();
-    // _frontCameraController?.dispose();
-    // _videoPlayerController?.dispose();
-    for (final controller in _toDispose) {
+    // Ensure the current controller is disposed if it exists
+    print("[CAMERA WIDGET] CALLING DISPOSE!!");
+    _currentCameraFuture?.then((controller) {
       controller.dispose();
-    }
-    _toDispose.clear();
+    });
+    // Dispose all other controllers that were added to the list
+    // This handles the case where controllers are swapped rapidly
+    for (final controller in _toDispose) controller.dispose();
     super.dispose();
   }
 
@@ -87,14 +88,24 @@ class _CameraScreenState extends State<CameraScreen> {
       selectedCamera = newMode;
       if (cameraDescription != null) {
         _currentCameraFuture = loadController(cameraDescription);
+        // After initializing, if this controller is not the one currently
+        // assigned to _currentCameraFuture (due to rapid changes),
+        // it should be disposed.
+        _currentCameraFuture?.then((lastController) async {
+          if (mounted && _currentCameraFuture != null && (await _currentCameraFuture) != lastController) {
+            _toDispose.add(lastController);
+          }
+        });
       }
     });
   }
 
   Future<void> disposeCurrentController() async {
     final controller = await _currentCameraFuture;
-    if (controller != null && !_toDispose.contains(controller)) {
-      _toDispose.add(controller);
+    if (controller != null) {
+      if (!_toDispose.contains(controller)) {
+        _toDispose.add(controller);
+      }
     }
   }
 
@@ -519,56 +530,65 @@ class _CameraScreenState extends State<CameraScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Provider.of<AuthProvider>(context, listen: false).clearSelectedFilter();
+        Navigator.of(context).pop();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          title: null,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              Provider.of<AuthProvider>(context, listen: false).clearSelectedFilter();
+              Navigator.pop(context);
+            },
+          ),
+        ),
         backgroundColor: Colors.transparent,
-        title: null,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-      ),
-      backgroundColor: Colors.transparent,
-      body: Center(
-        child: FutureBuilder<CameraController>(
-          future: _currentCameraFuture, // Use the nullable Future
-          builder: (context, snapshot) {
-            Widget cameraPreview = const Center(
-              child: CircularProgressIndicator(),
-            );
-            if (snapshot.connectionState == ConnectionState.done) {
-              cameraPreview = CameraOverlay(
-                key: ValueKey(selectedCamera),
-                cameraController: snapshot.data,
+        body: Center(
+          child: FutureBuilder<CameraController>(
+            future: _currentCameraFuture, // Use the nullable Future
+            builder: (context, snapshot) {
+              Widget cameraPreview = const Center(
+                child: CircularProgressIndicator(),
               );
-            }
+              if (snapshot.connectionState == ConnectionState.done) {
+                cameraPreview = CameraOverlay(
+                  key: ValueKey(selectedCamera),
+                  cameraController: snapshot.data,
+                );
+              }
 
-            return Stack(
-              alignment: Alignment.center,
-              children: [
-                cameraPreview,
-                buildBottomControl(context, snapshot.data),
-                buildFilterSelector(context, snapshot.data),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: FloatingActionButton(
-                    onPressed: onCameraFlip,
-                    mini: true,
-                    backgroundColor: hasBothCameras() ? null : Colors.grey,
-                    child: const Icon(Icons.cameraswitch_sharp),
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  cameraPreview,
+                  buildBottomControl(context, snapshot.data),
+                  buildFilterSelector(context, snapshot.data),
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: FloatingActionButton(
+                      onPressed: onCameraFlip,
+                      mini: true,
+                      backgroundColor: hasBothCameras() ? null : Colors.grey,
+                      child: const Icon(Icons.cameraswitch_sharp),
+                    ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              );
+            },
+          ),
         ),
+        floatingActionButton: null,
+        drawer: null,
+        bottomNavigationBar: null,
       ),
-      floatingActionButton: null,
-      drawer: null,
-      bottomNavigationBar: null,
     );
   }
 

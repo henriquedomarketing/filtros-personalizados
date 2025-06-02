@@ -54,18 +54,34 @@ class _CameraOverlayState extends State<CameraOverlay> {
                   if (filter == null || filter.url == "") {
                     return Container();
                   }
-                  return CachedNetworkImage(
-                    imageUrl: filter.url,
-                    fit: BoxFit.fill,
-                    cacheKey: filter.name,
-                    placeholder: (context, url) => const Center(
-                      child: SizedBox(
-                        height: 50,
-                        width: 50,
-                        child: CircularProgressIndicator(),
-                      ),
-                    ),
-                    errorWidget: (context, url, error) => const Icon(Icons.error),);
+                  return Image.network( // Use Image.network
+                    key: ValueKey(filter.url), // Add a key to force rebuild when filter changes
+                    filter.url, // The URL of the image
+                    fit: BoxFit.fill, // How the image should be inscribed into the space allocated during layout
+                    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                      if (loadingProgress == null) {
+                        return child; // Return the image if it's fully loaded
+                      }
+                      return const Center(
+                        child: CircularProgressIndicator(), // Show a progress indicator while loading
+                      );
+                    },
+                    errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
+                      return const Icon(Icons.error); // Show an error icon if the image fails to load
+                    },
+                  );
+                  // return CachedNetworkImage(
+                  //   imageUrl: filter.url,
+                  //   fit: BoxFit.fill,
+                  //   cacheKey: filter.name,
+                  //   placeholder: (context, url) => const Center(
+                  //     child: SizedBox(
+                  //       height: 50,
+                  //       width: 50,
+                  //       child: CircularProgressIndicator(),
+                  //     ),
+                  //   ),
+                  //   errorWidget: (context, url, error) => const Icon(Icons.error),);
                 },
               ),
             ),

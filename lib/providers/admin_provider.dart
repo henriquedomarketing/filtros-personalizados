@@ -39,6 +39,7 @@ class AdminProvider extends ChangeNotifier {
 
   Future<String?> registerFilter(String name, String filePath, String category, CompanyModel company,
       {int order = 0}) async {
+    print("[ADMIN_PROVIDER] registeringFitler name=$name filePath=$filePath category=$category company=${company.name} order=$order");
     _isLoading = true;
     _error = null;
     notifyListeners();
