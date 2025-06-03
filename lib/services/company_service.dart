@@ -6,8 +6,10 @@ import 'package:camera_marketing_app/models/filter_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
 
 const BUCKET_NAME = "filtros";
+const VIDEO_INPUT_BUCKET = "videos_input";
 const BANNER_FILENAME = "banner_800";
 final JsonEncoder encoder = JsonEncoder.withIndent('  ');
 
@@ -121,6 +123,48 @@ class CompanyService {
       print('Error uploading banner: $e');
       print(stackTrace);
       return false;
+    }
+  }
+
+  static Future<String?> uploadAndProcessVideo(String videoPath, String filterUrl) async {
+    try {
+      print("[COMPANY_SERVICE] Uploading video to bucket!");
+      final file = File(videoPath);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final originalFileName = videoPath.split('/').last;
+      final videoFileName = "${timestamp}__${originalFileName}";
+      final storageRef = FirebaseStorage.instance
+          .ref(VIDEO_INPUT_BUCKET)
+          .child(videoFileName);
+      await storageRef.putFile(file);
+
+      print("[COMPANY_SERVICE] DONE! videoName = $videoFileName filterUrl = $filterUrl");
+      print("[COMPANY_SERVICE] Making request to process video!");
+      final response = await http.post(
+        // Uri.parse('http://localhost:5001/cameramarketing-91d5a/us-east1/processVideo'),
+        Uri.parse('https://processvideo-27ncrf2gpq-ue.a.run.app'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, String>{
+          'videoName': videoFileName,
+          'filterUrl': filterUrl,
+        }),
+      );
+
+      print("[COMPANY_SERVICE] DONE! status_code=${response.statusCode}");
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        final outputVideoUrl = responseBody['videoUrl'] as String;
+        print('[COMPANY_SERVICE] Video processed successfully: $outputVideoUrl');
+        return outputVideoUrl;
+      } else {
+        throw Exception('Failed to process video: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+      print('Error uploading video: $e');
+      print(stackTrace);
+      throw e;
     }
   }
 }

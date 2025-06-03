@@ -8,11 +8,14 @@ import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:open_file_manager/open_file_manager.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
+import '../components/video_preview.dart';
 import '../providers/auth_provider.dart';
 
 enum CameraMode { front, back }
@@ -192,16 +195,8 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void showVideoPreview(String filePath) {
-    Future<VideoPlayerController> loadVideo() async {
-      VideoPlayerController videoPlayerController = VideoPlayerController.file(
-        File(filePath),
-      );
-      videoPlayerController.initialize();
-      return videoPlayerController;
-    }
-
-    final loadVideoFuture = loadVideo();
-    if (mounted) {
+    final filter = getSelectedFilter();
+    if (mounted && filter != null) {
       showDialog(
         routeSettings: RouteSettings(
           // This ensures that when the dialog is popped, the controller is disposed
@@ -211,62 +206,7 @@ class _CameraScreenState extends State<CameraScreen> {
         barrierDismissible: false, // Prevent dismissing by tapping outside
         context: context,
         builder: (BuildContext context) {
-          return FutureBuilder<VideoPlayerController>(
-            future: loadVideoFuture,
-            builder: (context, snapshot) {
-              // Decide content
-              Widget content = const Center(child: CircularProgressIndicator());
-              VideoPlayerController? controller =
-              snapshot.connectionState == ConnectionState.done
-                  ? snapshot.data
-                  : null;
-              if (snapshot.connectionState == ConnectionState.done &&
-                  controller != null) {
-                content = RotatedBox(
-                  quarterTurns: 1, // Rotate 90 degrees clockwise
-                  child: AspectRatio(
-                    aspectRatio: controller.value.aspectRatio,
-                    // Invert aspect ratio for portrait
-                    child: VideoPlayer(controller),
-                  ),
-                );
-              }
-              return PopScope(
-                canPop: false, // Prevent back button from closing dialog directly
-                onPopInvoked: (didPop) {
-                  if (didPop) return; // Already handled by Navigator.pop
-                  controller?.pause();
-                  controller?.dispose();
-                  Navigator.of(context).pop();
-                },
-                child: AlertDialog(
-                  content: content,
-                  actions: <Widget>[
-                    IconButton(
-                      onPressed: () {
-                        controller?.play();
-                      },
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                      ),
-                      icon: Icon(
-                        Icons.play_circle_fill,
-                        color: controller != null ? null : Colors.grey,
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        controller?.pause();
-                        controller?.dispose();
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Fechar'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
+          return VideoPreview(videoPath: filePath, filterPath: filter.url);
         },
       ).then((_) => print("Video preview dialog closed")); // Optional: for debugging
     }
@@ -346,6 +286,10 @@ class _CameraScreenState extends State<CameraScreen> {
     if (controller.value.isRecordingVideo) {
       return;
     }
+    if (getSelectedFilter() == null) {
+      showNoFilterMessage();
+      return;
+    }
     try {
       await controller.prepareForVideoRecording();
       await controller.startVideoRecording();
@@ -359,6 +303,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> _stopVideoRecording(CameraController controller) async {
+    print("STOP RECORDING! ${controller.value.isRecordingVideo}");
     if (!controller.value.isRecordingVideo) {
       return;
     }
@@ -366,12 +311,20 @@ class _CameraScreenState extends State<CameraScreen> {
       setState(() {
         _isProcessingCapture = true;
       });
+      print('Video recording stopping');
       final file = await controller.stopVideoRecording();
       setState(() {
         _isRecording = false;
       });
       print('Video recorded to ${file.path}');
-      showVideoPreview(file.path);
+      final Directory tempDir = await getTemporaryDirectory();
+      final String tempPath = file.path;
+      final String newFileName =
+        path.join(tempDir.path, '${DateTime.now().millisecondsSinceEpoch}.mp4');
+      final File tempFile = File(tempPath);
+      final File newFile = tempFile.renameSync(newFileName);
+      print('Video recorded to ${file.path} copied to ${newFile.path}');
+      showVideoPreview(newFile.path);
     } catch (e) {
       print(e);
     } finally {

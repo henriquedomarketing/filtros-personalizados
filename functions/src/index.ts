@@ -27,18 +27,13 @@ import path from 'path';
 //   response.send("Hello from Firebase!");
 // });
 
-enum ResizeMode {
-  ORIGINAL,
-  FILL
-}
-
 // const FILTERS_BUCKET = "filtros";
 // const VIDEOS_INPUT_BUCKET = "videos_input";
 const VIDEOS_OUTPUT_FOLDER = "videos_output";
 
 // let storage: Storage;
 
-onInit(async () => {
+onInit(() => {
   admin.initializeApp({
     storageBucket: 'cameramarketing-91d5a.firebasestorage.app' // Replace with your storage bucket URL
   });
@@ -50,18 +45,18 @@ onInit(async () => {
 
 
 // Helper function to download a file from a URL to a local path
-// async function downloadFileFromBucket(bucket: string, url: string, localPath: string): Promise<void> {
-//     try {
-//       const fileOptions = { destination: localPath };
-//       // Assuming url is a publicly accessible URL
-//       const file = storage.bucket(bucket).file(url);
-//       await file.download(fileOptions);
-//       logger.info(`Downloaded ${url} to ${localPath}`);
-//     } catch (e) {
-//       console.error(`[MY ERROR] AT DOWNLOAD FILE ${bucket} ${url} ${localPath}`);
-//       throw e;
-//     }
-// }
+async function downloadFileFromBucket(fileName: string, localPath: string): Promise<void> {
+    try {
+      const fileOptions = { destination: localPath };
+      // Assuming url is a publicly accessible URL
+      const file = admin.storage().bucket().file(fileName);
+      await file.download(fileOptions);
+      console.info(`Downloaded ${fileName} to ${localPath}`);
+    } catch (e) {
+      console.error(`[MY ERROR] AT DOWNLOAD FILE ${fileName} ${localPath}`);
+      throw e;
+    }
+}
 
 async function downloadFileFromUrl(url: string, localPath: string) {
   try {
@@ -97,10 +92,11 @@ async function processVideoFill(videoInputPath: string, filterPath: string, outp
       .input(videoInputPath)
       .input(filterPath)
       .complexFilter([
-        `[1:v]scale=${width}:${height}[overlay]`,
+        `[1:v]scale=${height}:${width}[overlay]`,
         `[0:v][overlay]overlay=0:0`
       ])
-      .outputOptions('-c:a copy') // Copy audio without re-encoding
+      .outputOptions('-c:a aac')
+      // .outputOptions('-c:a copy') // Copy audio without re-encoding
       .save(outputPath)
       .on('end', () => {
         console.log('Video processing complete.');
@@ -115,18 +111,28 @@ async function processVideoFill(videoInputPath: string, filterPath: string, outp
 
 
 async function processVideo(videoInputPath: string, filterPath: string, outputPath: string): Promise<void> {
+  // const metadata = await new Promise<FfprobeData>((resolve, reject) => {
+  //   ffprobe(videoInputPath, (err, metadata) => {
+  //     if (err) reject(err)
+  //     else resolve(metadata);
+  //   });
+  // });
+  // console.log(` >>>>>>>> VIDEO FORMAT --> ${metadata.format} ~~~~~~~~~~~~~~`);
   await new Promise<void>((resolve, reject) => {
     ffmpeg(videoInputPath)
       .input(filterPath)
       .complexFilter(['overlay=0:0'])
-      .outputOptions('-c:a copy') // Copy audio without re-encoding
+      .outputOptions('-c:a aac')
+      // .outputOptions('-c:a copy') // Copy audio without re-encoding
       .save(outputPath)
       .on('end', () => {
         console.log('Video processing complete.');
         resolve();
       })
-      .on('error', (err) => {
-        console.error('Error during video processing:', err);
+      .on('error', (err, stdout, stderr) => {
+        console.log(err.message);
+        console.log("stdout:\n" + stdout);
+        console.log("stderr:\n" + stderr);
         reject(err);
       });
   });
@@ -136,28 +142,31 @@ exports.processVideo = onRequest(
   { timeoutSeconds: 1200, region: ["us-east1"], },
   async (req, res) => {
     // if (!storage) throw Error("FirebaseStorage not available. var was no initted (my code)")
-    const videoUrl = req.body.videoUrl;
+    const videoName = req.body.videoName;
     const filterUrl = req.body.filterUrl;
 
-    const resizeMode = ResizeMode.FILL;
+    const videoRef = `videos_input/${videoName}`;
+
+    const resizeMode = "fill";
 
     // Get and download input files
     const timestamp = new Date().getTime();
     const tmpDir = os.tmpdir();
     const localVideoPath = path.join(tmpDir, `input_video_${timestamp}.mp4`);
     const localFilterPath = path.join(tmpDir, `filter_video_${timestamp}.png`);
-    await downloadFileFromUrl(videoUrl, localVideoPath);
+    // await downloadFileFromUrl(videoName, localVideoPath);
     await downloadFileFromUrl(filterUrl, localFilterPath);
+    await downloadFileFromBucket(videoRef, localVideoPath);
 
     const outputFileName = `processed_${new Date().getTime()}.mp4`;
     const tempOutputPath = path.join(os.tmpdir(), outputFileName);
     const outputStoragePath = `${VIDEOS_OUTPUT_FOLDER}/${outputFileName}`;
 
     // Process the video with FFmpeg
-    if (resizeMode == ResizeMode.FILL) {
-      await processVideoFill(localVideoPath, localFilterPath, outputFileName);
+    if (resizeMode == "fill") {
+      await processVideoFill(localVideoPath, localFilterPath, tempOutputPath);
     } else {
-      await processVideo(localVideoPath, localFilterPath, outputFileName);
+      await processVideo(localVideoPath, localFilterPath, tempOutputPath);
     }
 
     let outputUrl = "";
@@ -174,6 +183,13 @@ exports.processVideo = onRequest(
       throw e;
     }
     console.log('Processed video uploaded to', outputStoragePath);
+
+    try {
+      admin.storage().bucket().file(videoRef).delete();
+    } catch (e) {
+      console.error(`[MY ERROR] AT REMOVE INPUT FILE ${VIDEOS_OUTPUT_FOLDER} ${tempOutputPath} ${outputStoragePath}`);
+      throw e;
+    }
 
     // Clean up temporary files
     fs.unlinkSync(localVideoPath);
