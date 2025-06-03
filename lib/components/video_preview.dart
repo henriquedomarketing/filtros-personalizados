@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:open_file_manager/open_file_manager.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
 import '../services/company_service.dart';
+import '../utils.dart';
 
 class VideoPreview extends StatefulWidget {
   final String videoPath;
@@ -19,9 +22,16 @@ class _VideoPreviewState extends State<VideoPreview> {
 
   Future<VideoPlayerController?> futureVideoController = Future(() => null);
 
+  bool saveLoading = false;
+  bool alreadySaved = false;
+
   @override
   void initState() {
     super.initState();
+    setState(() {
+      saveLoading = false;
+      alreadySaved = false;
+    });
     loadVideo();
   }
 
@@ -51,6 +61,35 @@ class _VideoPreviewState extends State<VideoPreview> {
     return ctr;
   }
 
+  void onPreviewSave() async {
+    setState(() {
+      saveLoading = true;
+    });
+    try {
+      final url = await futureOutputVideoUrl;
+      if (url == null) return;
+      await CompanyService.downloadAndSaveVideo(url);
+      final docsDir = await Utils.getSaveDirectory();
+      openFileManager(
+        androidConfig: AndroidConfig(
+          folderType: AndroidFolderType.other,
+          folderPath: docsDir!.path,
+        ),
+        iosConfig: IosConfig(folderPath: docsDir.path),
+      );
+      setState(() {
+        alreadySaved = true;
+      });
+    } catch (e, stackTrace) {
+      print(e);
+      print(stackTrace);
+    } finally {
+      setState(() {
+        saveLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -62,6 +101,7 @@ class _VideoPreviewState extends State<VideoPreview> {
                 Widget content =
                     const Center(child: CircularProgressIndicator());
                 final controller = videoControllerSnapshot.data;
+                final url = videoOutputSnapshot.connectionState != ConnectionState.done ? null : videoOutputSnapshot.data;
                 if (videoOutputSnapshot.connectionState !=
                     ConnectionState.done) {
                   content = const Center(child: CircularProgressIndicator());
@@ -101,7 +141,29 @@ class _VideoPreviewState extends State<VideoPreview> {
                   child: AlertDialog(
                     content: content,
                     actions: <Widget>[
-                      IconButton(
+                      TextButton(
+                        onPressed: () {
+                          controller?.pause();
+                          controller?.dispose();
+                          Navigator.of(context).pop();
+                        },
+                        child: const Text('Fechar'),
+                      ),
+                      SizedBox(width: 15),
+                      url != null && !saveLoading ? TextButton(
+                        onPressed: alreadySaved ? null : () => onPreviewSave(),
+                        style: TextButton.styleFrom(
+                          foregroundColor: alreadySaved
+                              ? Theme.of(context).disabledColor
+                              : Theme.of(context).primaryColor,
+                        ),
+                        child: const Text('SALVAR'),
+                      ) : const SizedBox(
+                          width: 40,
+                          height: 5,
+                          child: LinearProgressIndicator()
+                      ),
+                      url != null ? IconButton(
                         onPressed: () {
                           controller?.play();
                         },
@@ -111,14 +173,10 @@ class _VideoPreviewState extends State<VideoPreview> {
                         icon: Icon(
                           Icons.play_circle_fill,
                         ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          controller?.pause();
-                          controller?.dispose();
-                          Navigator.of(context).pop();
-                        },
-                        child: const Text('Fechar'),
+                      ) : const SizedBox(
+                          width: 40,
+                          height: 5,
+                          child: LinearProgressIndicator()
                       ),
                     ],
                   ),

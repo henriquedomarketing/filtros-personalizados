@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:camera_marketing_app/components/camera_overlay.dart';
 import 'package:camera_marketing_app/models/filter_model.dart';
+import 'package:camera_marketing_app/services/local_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
@@ -10,13 +11,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:open_file_manager/open_file_manager.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:video_player/video_player.dart';
 
 import '../components/video_preview.dart';
 import '../providers/auth_provider.dart';
+import '../utils.dart';
 
 enum CameraMode { front, back }
 
@@ -133,14 +133,14 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void onPreviewSave(String filePath) async {
-    final success = await copyFileToSaveDirectory(filePath);
+    final success = await Utils.copyFileToSaveDirectory(filePath);
     if (success) {
       await openFileManager(
         androidConfig: AndroidConfig(
           folderType: AndroidFolderType.other,
-          folderPath: (await getSaveDirectory())!.path,
+          folderPath: (await Utils.getSaveDirectory())!.path,
         ),
-        iosConfig: IosConfig(folderPath: (await getSaveDirectory())!.path),
+        iosConfig: IosConfig(folderPath: (await Utils.getSaveDirectory())!.path),
       );
       Navigator.of(context).pop();
     }
@@ -242,7 +242,7 @@ class _CameraScreenState extends State<CameraScreen> {
     final compositeImage = img.compositeImage(originalImage, resizedOverlay);
 
     // Save the composite image
-    final directory = await getSaveDirectory();
+    final directory = await Utils.getSaveDirectory();
     if (directory == null) {
       return null;
     }
@@ -258,6 +258,10 @@ class _CameraScreenState extends State<CameraScreen> {
 
   Future<void> _takePicture(String filterPath,
       CameraController controller,) async {
+    if (!await LocalStorageService.canTakeImage()) {
+      showLimitReachedMessage();
+      return;
+    }
     try {
       setState(() {
         _isProcessingCapture = true;
@@ -267,6 +271,7 @@ class _CameraScreenState extends State<CameraScreen> {
       final image = await controller.takePicture();
       // controller.pausePreview();
       final processedImagePath = await _processImage(image.path, filterPath);
+      LocalStorageService.setImageTaken();
 
       if (processedImagePath != null) {
         print('Processed image saved to: $processedImagePath');
@@ -290,9 +295,14 @@ class _CameraScreenState extends State<CameraScreen> {
       showNoFilterMessage();
       return;
     }
+    if (!await LocalStorageService.canTakeVideo()) {
+      showLimitReachedMessage();
+      return;
+    }
     try {
       await controller.prepareForVideoRecording();
       await controller.startVideoRecording();
+      LocalStorageService.setVideoTaken();
       setState(() {
         _isRecording = true;
       });
@@ -347,7 +357,7 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void onLeftAction() async {
-    final docsDir = await getSaveDirectory();
+    final docsDir = await Utils.getSaveDirectory();
     // if (await Permission.storage.request().isGranted) {
     openFileManager(
       androidConfig: AndroidConfig(
@@ -375,6 +385,15 @@ class _CameraScreenState extends State<CameraScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Nenhum filtro selecionado"),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void showLimitReachedMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Você atingiu o limite de uso dentro de 8 horas."),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -543,32 +562,5 @@ class _CameraScreenState extends State<CameraScreen> {
         bottomNavigationBar: null,
       ),
     );
-  }
-
-  Future<bool> copyFileToSaveDirectory(String path) async {
-    final directory = await getSaveDirectory();
-    final fileName = path
-        .split('/')
-        .last;
-    final newPath = '${directory!.path}$fileName';
-    try {
-      await File(path).copy(newPath);
-      print('File copied to: $newPath');
-      return true;
-    } catch (e) {
-      print('Error copying file: $e');
-      return false;
-    }
-  }
-
-  // Get the directory to save the images
-  Future<Directory?> getSaveDirectory() async {
-    final dirPath = "/storage/emulated/0/Download/cameramarketing";
-    PermissionStatus status = await Permission.storage.status;
-    if (status.isDenied) {
-      status = await Permission.storage.request();
-    }
-    await Directory(dirPath).create(recursive: true);
-    return Directory(dirPath);
   }
 }

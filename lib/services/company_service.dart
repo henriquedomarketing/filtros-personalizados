@@ -8,6 +8,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart' as http;
 
+import '../utils.dart';
+
 const BUCKET_NAME = "filtros";
 const VIDEO_INPUT_BUCKET = "videos_input";
 const BANNER_FILENAME = "banner_800";
@@ -165,6 +167,38 @@ class CompanyService {
       print('Error uploading video: $e');
       print(stackTrace);
       throw e;
+    }
+  }
+
+  static Future<void> downloadAndSaveVideo(String videoUrl) async {
+    try {
+      final response = await http.get(Uri.parse(videoUrl));
+      if (response.statusCode == 200) {
+        final docsDir = await Utils.getSaveDirectory();
+        final fileName = "${DateTime.now().millisecondsSinceEpoch}.mp4";
+        final filePath = '${docsDir!.path}/$fileName';
+        final file = File(filePath);
+        await file.writeAsBytes(response.bodyBytes);
+        print('Video downloaded and saved successfully! $filePath');
+        CompanyService.deleteVideoOutput(videoUrl);
+      } else {
+        throw Exception('Failed to download video: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+     print(e);
+     print(stackTrace);
+     rethrow;
+    }
+  }
+
+  static Future<void> deleteVideoOutput(String videoUrl) async {
+    try {
+      final fileName = videoUrl.split('/').last.split('?').first;
+      final storageRef = FirebaseStorage.instance.ref(VIDEO_INPUT_BUCKET).child(fileName);
+      await storageRef.delete();
+    } catch (e, stackTrace) {
+      print(e);
+      print(stackTrace);
     }
   }
 }
