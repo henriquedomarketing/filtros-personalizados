@@ -42,6 +42,9 @@ class _CameraScreenState extends State<CameraScreen> {
   bool _isLoadingUpload = false;
 
   bool _isRecording = false;
+  double _currentZoomLevel = 1.0;
+  double _minZoomLevel = 1.0;
+  double _maxZoomLevel = 1.0;
   List<CameraController> _toDispose = [];
 
   @override
@@ -117,6 +120,15 @@ class _CameraScreenState extends State<CameraScreen> {
     await disposeCurrentController();
     final controller = CameraController(camera, ResolutionPreset.high);
     await controller.initialize();
+    final min = await controller.getMinZoomLevel();
+    final max = await controller.getMaxZoomLevel();
+    setState(() {
+      _minZoomLevel = min;
+      _maxZoomLevel = max;
+      _currentZoomLevel = 1.0; // Reset zoom level
+    });
+    print("CAMERA MIN AND MAX ZOOM: $min - $max");
+    await controller.setZoomLevel(_currentZoomLevel);
     return controller;
   }
 
@@ -392,6 +404,30 @@ class _CameraScreenState extends State<CameraScreen> {
     // }
   }
 
+  void onToggleZoom() async {
+    final controller = await _currentCameraFuture;
+    if (controller == null) return;
+
+    double newZoomLevel;
+    // Toggle between 1.0x and 0.5x (if available, otherwise use minZoomLevel)
+    if (_currentZoomLevel >= 1.0) {
+      newZoomLevel = _minZoomLevel < 0.6 ? 0.5 : _minZoomLevel; // Prefer 0.5x if possible
+    } else {
+      newZoomLevel = 1.0;
+    }
+
+    // Ensure the new zoom level is within the supported range
+    newZoomLevel = newZoomLevel.clamp(_minZoomLevel, _maxZoomLevel);
+    await controller.setZoomLevel(newZoomLevel);
+    _currentZoomLevel = newZoomLevel;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Zoom alterado para ${_currentZoomLevel.toStringAsFixed(1)}x"),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   FilterModel? getSelectedFilter() {
     return Provider.of<AuthProvider>(context, listen: false).selectedFilter;
   }
@@ -578,10 +614,22 @@ class _CameraScreenState extends State<CameraScreen> {
                     child: FloatingActionButton(
                       onPressed: onCameraFlip,
                       mini: true,
-                      backgroundColor: hasBothCameras() ? const Color(0xFF0037c6) : Colors.grey,
+                      backgroundColor:
+                          hasBothCameras() ? const Color(0xFF0037c6) : Colors.grey,
                       child: const Icon(Icons.cameraswitch_sharp, color: Colors.white),
                     ),
                   ),
+                  Positioned(
+                      top: 10,
+                      left: 10,
+                      child: FloatingActionButton(
+                        onPressed: _minZoomLevel >= 1 ? null : onToggleZoom,
+                        mini: true,
+                        backgroundColor: _minZoomLevel >= 1
+                            ? Colors.grey
+                            : const Color(0xFF0037c6),
+                        child: const Icon(Icons.camera, color: Colors.white), // Example icon
+                      )),
                 ],
               );
             },
