@@ -26,7 +26,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
     return Consumer<AuthProvider>(builder: (context, authProvider, child) {
       print(authProvider.loggedUser?.categories);
       return Scaffold(
-        backgroundColor: Colors.indigo,
+        backgroundColor: const Color(0xFF001362),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           title: const Text(

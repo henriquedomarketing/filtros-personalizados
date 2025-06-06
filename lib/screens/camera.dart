@@ -39,6 +39,7 @@ class _CameraScreenState extends State<CameraScreen> {
   bool _isProcessingCapture = false;
 
   Future<CameraController>? _currentCameraFuture;
+  bool _isLoadingUpload = false;
 
   bool _isRecording = false;
   List<CameraController> _toDispose = [];
@@ -147,22 +148,35 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   Future<void> onUploadImage(BuildContext context) async {
+    setState(() {
+      _isLoadingUpload = true;
+    });
     if (getSelectedFilter() == null || getSelectedFilter()?.url == "") {
       showNoFilterMessage();
+      setState(() {
+        _isLoadingUpload = false;
+      });
       return;
     }
     final ImagePicker picker = ImagePicker();
     // Pick an image
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
-    if (image != null) {
-      // You can now use the image file path
-      print('Image selected: ${image.path}');
-      final processedImagePath = await _processImage(
-        image.path,
-        getSelectedFilter()!.url,
-      );
-      showImagePreview(processedImagePath!);
+    try {
+      if (image != null) {
+        // You can now use the image file path
+        print('Image selected: ${image.path}');
+        final processedImagePath = await _processImage(
+          image.path,
+          getSelectedFilter()!.url,
+          matchSourceSize: false
+        );
+        showImagePreview(processedImagePath!);
+      }
+    } finally {
+      setState(() {
+        _isLoadingUpload = false;
+      });
     }
   }
 
@@ -212,7 +226,11 @@ class _CameraScreenState extends State<CameraScreen> {
     }
   }
 
-  Future<String?> _processImage(String imagePath, String filterImageUrl) async {
+  Future<String?> _processImage(
+    String imagePath,
+    String filterImageUrl, {
+    bool matchSourceSize = true,
+  }) async {
     final originalImage = img.decodeImage(File(imagePath).readAsBytesSync());
     if (originalImage == null) return null;
 
@@ -231,12 +249,17 @@ class _CameraScreenState extends State<CameraScreen> {
     );
     if (overlayImage == null) return null;
 
-    // Resize overlay to match camera image resolution
-    final resizedOverlay = img.copyResize(
-      overlayImage,
-      width: originalImage.width,
-      height: originalImage.height,
-    );
+    // Resize overlay to match camera image resolution if matchSourceSize is true
+    final img.Image resizedOverlay;
+    if (matchSourceSize) {
+      resizedOverlay = img.copyResize(
+        overlayImage,
+        width: originalImage.width,
+        height: originalImage.height,
+      );
+    } else {
+      resizedOverlay = overlayImage;
+    }
 
     // Composite the images
     final compositeImage = img.compositeImage(originalImage, resizedOverlay);
@@ -418,7 +441,8 @@ class _CameraScreenState extends State<CameraScreen> {
           FloatingActionButton(
             onPressed: onLeftAction,
             mini: true,
-            child: const Icon(Icons.image),
+            backgroundColor: const Color(0xFF0037c6),
+            child: const Icon(Icons.image, color: Colors.white),
           ),
           GestureDetector(
             onTap: () => _onTapCapture(controller!),
@@ -429,7 +453,7 @@ class _CameraScreenState extends State<CameraScreen> {
               height: 80.0, // Center button height
               child: FloatingActionButton(
                 onPressed: null, // onTap and onLongPress handle actions
-                backgroundColor: _isRecording ? Colors.red : Colors.indigo,
+                backgroundColor: _isRecording ? Colors.red : const Color(0xFF001362),
                 child: buildCaptureIcon(context),
               ),
             ),
@@ -437,7 +461,13 @@ class _CameraScreenState extends State<CameraScreen> {
           FloatingActionButton(
             onPressed: () => onUploadImage(context),
             mini: true,
-            child: const Icon(Icons.add_photo_alternate),
+            backgroundColor: const Color(0xFF0037c6),
+            child: _isLoadingUpload
+                ? SizedBox(
+                    width: 25,
+                    height: 25,
+                    child: CircularProgressIndicator(color: Colors.white))
+                : const Icon(Icons.add_photo_alternate, color: Colors.white),
           ),
         ],
       ),
@@ -452,7 +482,7 @@ class _CameraScreenState extends State<CameraScreen> {
       fontSize: 18,
     );
     var buttonStyle = ElevatedButton.styleFrom(
-      backgroundColor: Colors.indigo.withValues(alpha: 0.9),
+      backgroundColor: const Color(0xFF001362).withValues(alpha: 0.9),
       // Example item color
       shape: const CircleBorder(),
       padding: EdgeInsets.zero, // Remove default padding
@@ -548,8 +578,8 @@ class _CameraScreenState extends State<CameraScreen> {
                     child: FloatingActionButton(
                       onPressed: onCameraFlip,
                       mini: true,
-                      backgroundColor: hasBothCameras() ? null : Colors.grey,
-                      child: const Icon(Icons.cameraswitch_sharp),
+                      backgroundColor: hasBothCameras() ? const Color(0xFF0037c6) : Colors.grey,
+                      child: const Icon(Icons.cameraswitch_sharp, color: Colors.white),
                     ),
                   ),
                 ],

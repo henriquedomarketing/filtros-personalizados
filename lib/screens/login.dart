@@ -3,6 +3,7 @@ import 'package:camera_marketing_app/providers/auth_provider.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../components/support_button.dart';
 import '../models/company_model.dart';
@@ -27,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    _loadLogin();
     futureBannerUrl = _loadBanner();
   }
 
@@ -35,6 +37,21 @@ class _LoginScreenState extends State<LoginScreen> {
     _loginController.dispose();
     _senhaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? login = prefs.getString('login');
+    if (login != null) {
+      setState(() {
+        _loginController.text = login;
+      });
+    }
+  }
+
+  Future<void> _saveLogin(String login) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('login', login);
   }
 
   Future<String?> _loadBanner() async {
@@ -53,17 +70,18 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-      CompanyModel? result = await Provider.of<AuthProvider>(
-        context,
-        listen: false,
-      ).login(_loginController.text, _senhaController.text);
-      if (result != null) {
-        if (result.admin) {
-          Navigator.of(context).pushNamed('/admin');
-        } else {
-          Navigator.of(context).pushNamed('/categories');
-        }
+    await _saveLogin(_loginController.text);
+    CompanyModel? result = await Provider.of<AuthProvider>(
+      context,
+      listen: false,
+    ).login(_loginController.text, _senhaController.text);
+    if (result != null) {
+      if (result.admin) {
+        Navigator.of(context).pushNamed('/admin');
+      } else {
+        Navigator.of(context).pushNamed('/categories');
       }
+    }
     // } catch (e) {
     //   print(e);
     //   throw e;
@@ -87,15 +105,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 } else if (snapshot.hasError || snapshot.data == null) {
-                  return const Center(child: Icon(Icons.error)); // Placeholder for error or no banner
+                  return const Center(
+                      child: Icon(
+                          Icons.error)); // Placeholder for error or no banner
                 } else {
                   return CachedNetworkImage(
                     imageUrl: snapshot.data!,
                     cacheKey: "banner800",
                     fit: BoxFit.fitWidth,
                     width: double.infinity,
-                    placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                    errorWidget: (context, url, error) => const Center(child: Icon(Icons.error)),
+                    placeholder: (context, url) =>
+                        const Center(child: CircularProgressIndicator()),
+                    errorWidget: (context, url, error) =>
+                        const Center(child: Icon(Icons.error)),
                   );
                 }
               },
@@ -115,7 +137,7 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (context, authProvider, child) {
         return Scaffold(
           resizeToAvoidBottomInset: true,
-          backgroundColor: Colors.indigo,
+          backgroundColor: const Color(0xFF001362),
           body: LayoutBuilder(
             builder: (context, constraints) {
               return Column(
@@ -138,7 +160,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     labelText: 'Login',
                                     fillColor: Colors.white,
                                     filled: true,
-                                    errorStyle: TextStyle(color: Colors.orangeAccent),
+                                    errorStyle:
+                                        TextStyle(color: Colors.orangeAccent),
                                     border: UnderlineInputBorder(),
                                   ),
                                   validator: (value) {
@@ -156,7 +179,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                     labelText: 'Senha',
                                     fillColor: Colors.white,
                                     filled: true,
-                                    errorStyle: TextStyle(color: Colors.orangeAccent),
+                                    errorStyle:
+                                        TextStyle(color: Colors.orangeAccent),
                                     border: UnderlineInputBorder(),
                                   ),
                                   validator: (value) {
@@ -169,31 +193,31 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 24.0),
                                 ElevatedButton(
                                   onPressed: () => onLogin(context),
-                                  child:
-                                      (authProvider.isLoading
-                                          ? const SizedBox(
-                                            width: 24,
-                                            height: 24,
-                                            child: CircularProgressIndicator(),
-                                          )
-                                          : const Text('Entrar')),
+                                  child: (authProvider.isLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(),
+                                        )
+                                      : const Text('Entrar')),
                                 ),
                                 const SizedBox(height: 16.0),
                                 SupportButton(),
                                 authProvider.error != null
                                     ? Container(
-                                      color: Colors.red.withValues(alpha: 0.25),
-                                      margin: const EdgeInsets.only(top: 10),
-                                      child: Text(
-                                        authProvider.error!,
-                                        style: const TextStyle(
-                                          color: Colors.red,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 18,
+                                        color:
+                                            Colors.red.withValues(alpha: 0.25),
+                                        margin: const EdgeInsets.only(top: 10),
+                                        child: Text(
+                                          authProvider.error!,
+                                          style: const TextStyle(
+                                            color: Colors.red,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 18,
+                                          ),
+                                          textAlign: TextAlign.center,
                                         ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    )
+                                      )
                                     : Container(),
                               ],
                             ),

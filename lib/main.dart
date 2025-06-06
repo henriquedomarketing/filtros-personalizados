@@ -34,7 +34,7 @@ class CameraMarketingApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Camera Marketing',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
+          colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF001362)),
         ),
         initialRoute: "/",
         onGenerateRoute: (settings) {

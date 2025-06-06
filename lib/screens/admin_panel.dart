@@ -127,7 +127,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                     child: ElevatedButton(
                       onPressed: () => onCadastrarEmpresa(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
+                        backgroundColor: const Color(0xFF001362),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(5),
                         ),
@@ -149,7 +149,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                     child: ElevatedButton(
                       onPressed: () => onCadastrarFiltro(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.indigo,
+                        backgroundColor: const Color(0xFF001362),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(5),
                         ),
@@ -172,7 +172,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               child: ElevatedButton(
                 onPressed: () => onUploadBanner(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo,
+                  backgroundColor: const Color(0xFF001362),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(5),
                   ),
