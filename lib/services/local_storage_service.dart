@@ -57,6 +57,8 @@ class LocalStorageService {
   }
 
   static Future<bool> canTakeImage() async {
+    // TODO: cliente quer deixar sem limite de imagem por hora.
+    return true;
     final prefs = await SharedPreferences.getInstance();
     final lastImageTimestamp = prefs.getInt(IMAGE_TIMESTAMP_KEY) ?? 0;
     final imageCount = prefs.getInt(IMAGE_COUNTER_KEY) ?? 0;
