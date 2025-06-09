@@ -405,6 +405,17 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void onToggleZoom() async {
+    if (_minZoomLevel >= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Este nível de zoom não está disponível.\n"
+              "Zoom mínimo disponível: ${_minZoomLevel.toStringAsFixed(1)}\n"
+              "Zoom máximo disponível: ${_maxZoomLevel.toStringAsFixed(1)}"),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     final controller = await _currentCameraFuture;
     if (controller == null) return;
 
@@ -623,7 +634,7 @@ class _CameraScreenState extends State<CameraScreen> {
                       top: 10,
                       left: 10,
                       child: FloatingActionButton(
-                        onPressed: _minZoomLevel >= 1 ? null : onToggleZoom,
+                        onPressed: onToggleZoom,
                         mini: true,
                         backgroundColor: _minZoomLevel >= 1
                             ? Colors.grey

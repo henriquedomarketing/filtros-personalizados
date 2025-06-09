@@ -1,4 +1,4 @@
-name: Build AAB
+name: "[Trigger] Build AAB"
 
 on:
   workflow_dispatch:
