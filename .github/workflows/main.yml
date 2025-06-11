@@ -71,8 +71,8 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Update version to match tag ${GITHUB_REF#refs/tags/}"
-          title: "Version update to ${GITHUB_REF#refs/tags/}"
-          body: "This PR updates the version in pubspec.yaml to match the release tag ${GITHUB_REF#refs/tags/}."
+          commit-message: "Update version to match tag ${{GITHUB_REF#refs/tags/}}"
+          title: "Version update to ${{GITHUB_REF#refs/tags/}}"
+          body: "This PR updates the version in pubspec.yaml to match the release tag ${{GITHUB_REF#refs/tags/}}."
           base: master
           branch: version-update-${{ github.ref_name }}
