@@ -28,8 +28,10 @@ class _CameraOverlayState extends State<CameraOverlay> {
               child: FittedBox(
                 fit: BoxFit.fitWidth,
                 child: SizedBox(
-                  width: widget.cameraController!.value.previewSize?.height ?? 1080,
-                  height: widget.cameraController!.value.previewSize?.width ?? 1920,
+                  width: widget.cameraController!.value.previewSize?.height ??
+                      1080,
+                  height:
+                      widget.cameraController!.value.previewSize?.width ?? 1920,
                   child: Stack(
                     children: [
                       CameraPreview(
@@ -54,20 +56,27 @@ class _CameraOverlayState extends State<CameraOverlay> {
                   if (filter == null || filter.url == "") {
                     return Container();
                   }
-                  return Image.network( // Use Image.network
-                    key: ValueKey(filter.url), // Add a key to force rebuild when filter changes
+                  return Image.network(
+                    // Use Image.network
+                    key: ValueKey(filter
+                        .url), // Add a key to force rebuild when filter changes
                     filter.url, // The URL of the image
-                    fit: BoxFit.fill, // How the image should be inscribed into the space allocated during layout
-                    loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                    fit: BoxFit
+                        .fill, // How the image should be inscribed into the space allocated during layout
+                    loadingBuilder: (BuildContext context, Widget child,
+                        ImageChunkEvent? loadingProgress) {
                       if (loadingProgress == null) {
                         return child; // Return the image if it's fully loaded
                       }
                       return const Center(
-                        child: CircularProgressIndicator(), // Show a progress indicator while loading
+                        child:
+                            CircularProgressIndicator(), // Show a progress indicator while loading
                       );
                     },
-                    errorBuilder: (BuildContext context, Object exception, StackTrace? stackTrace) {
-                      return const Icon(Icons.error); // Show an error icon if the image fails to load
+                    errorBuilder: (BuildContext context, Object exception,
+                        StackTrace? stackTrace) {
+                      return const Icon(Icons
+                          .error); // Show an error icon if the image fails to load
                     },
                   );
                   // return CachedNetworkImage(
@@ -97,11 +106,10 @@ class _CameraOverlayState extends State<CameraOverlay> {
 class ThirdsGridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = Colors.white.withValues(alpha: 0.2)
-          ..strokeWidth = 2
-          ..filterQuality = FilterQuality.high;
+    final paint = Paint()
+      ..color = Colors.white.withAlpha((0.2 * 255).toInt())
+      ..strokeWidth = 2
+      ..filterQuality = FilterQuality.high;
 
     // Draw vertical lines
     canvas.drawLine(

@@ -73,10 +73,10 @@ class _CameraScreenState extends State<CameraScreen> {
     setState(() {
       cameras = localCameras;
       frontCamera = localCameras.firstWhere(
-            (camera) => camera.lensDirection == CameraLensDirection.front,
+        (camera) => camera.lensDirection == CameraLensDirection.front,
       );
       backCamera = localCameras.firstWhere(
-            (camera) => camera.lensDirection == CameraLensDirection.back,
+        (camera) => camera.lensDirection == CameraLensDirection.back,
       );
       setSelectedCamera(
         backCamera != null ? CameraMode.back : CameraMode.front,
@@ -90,7 +90,7 @@ class _CameraScreenState extends State<CameraScreen> {
 
   void setSelectedCamera(CameraMode newMode) {
     final cameraDescription =
-    newMode == CameraMode.front ? frontCamera : backCamera;
+        newMode == CameraMode.front ? frontCamera : backCamera;
     setState(() {
       selectedCamera = newMode;
       if (cameraDescription != null) {
@@ -99,7 +99,9 @@ class _CameraScreenState extends State<CameraScreen> {
         // assigned to _currentCameraFuture (due to rapid changes),
         // it should be disposed.
         _currentCameraFuture?.then((lastController) async {
-          if (mounted && _currentCameraFuture != null && (await _currentCameraFuture) != lastController) {
+          if (mounted &&
+              _currentCameraFuture != null &&
+              (await _currentCameraFuture) != lastController) {
             _toDispose.add(lastController);
           }
         });
@@ -153,7 +155,8 @@ class _CameraScreenState extends State<CameraScreen> {
           folderType: AndroidFolderType.other,
           folderPath: (await Utils.getSaveDirectory())!.path,
         ),
-        iosConfig: IosConfig(folderPath: (await Utils.getSaveDirectory())!.path),
+        iosConfig:
+            IosConfig(folderPath: (await Utils.getSaveDirectory())!.path),
       );
       Navigator.of(context).pop();
     }
@@ -179,10 +182,8 @@ class _CameraScreenState extends State<CameraScreen> {
         // You can now use the image file path
         print('Image selected: ${image.path}');
         final processedImagePath = await _processImage(
-          image.path,
-          getSelectedFilter()!.url,
-          matchSourceSize: false
-        );
+            image.path, getSelectedFilter()!.url,
+            matchSourceSize: false);
         showImagePreview(processedImagePath!);
       }
     } finally {
@@ -234,7 +235,8 @@ class _CameraScreenState extends State<CameraScreen> {
         builder: (BuildContext context) {
           return VideoPreview(videoPath: filePath, filterPath: filter.url);
         },
-      ).then((_) => print("Video preview dialog closed")); // Optional: for debugging
+      ).then((_) =>
+          print("Video preview dialog closed")); // Optional: for debugging
     }
   }
 
@@ -281,9 +283,7 @@ class _CameraScreenState extends State<CameraScreen> {
     if (directory == null) {
       return null;
     }
-    final timestamp = DateTime
-        .now()
-        .millisecondsSinceEpoch;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
     final filePath = '${directory.path}/composite_image_$timestamp.png';
     final _newFile = File(filePath)
       ..writeAsBytesSync(img.encodePng(compositeImage));
@@ -291,8 +291,10 @@ class _CameraScreenState extends State<CameraScreen> {
     return filePath;
   }
 
-  Future<void> _takePicture(String filterPath,
-      CameraController controller,) async {
+  Future<void> _takePicture(
+    String filterPath,
+    CameraController controller,
+  ) async {
     if (!await LocalStorageService.canTakeImage()) {
       showLimitReachedMessage();
       return;
@@ -364,8 +366,8 @@ class _CameraScreenState extends State<CameraScreen> {
       print('Video recorded to ${file.path}');
       final Directory tempDir = await getTemporaryDirectory();
       final String tempPath = file.path;
-      final String newFileName =
-        path.join(tempDir.path, '${DateTime.now().millisecondsSinceEpoch}.mp4');
+      final String newFileName = path.join(
+          tempDir.path, '${DateTime.now().millisecondsSinceEpoch}.mp4');
       final File tempFile = File(tempPath);
       final File newFile = tempFile.renameSync(newFileName);
       print('Video recorded to ${file.path} copied to ${newFile.path}');
@@ -422,7 +424,8 @@ class _CameraScreenState extends State<CameraScreen> {
     double newZoomLevel;
     // Toggle between 1.0x and 0.5x (if available, otherwise use minZoomLevel)
     if (_currentZoomLevel >= 1.0) {
-      newZoomLevel = _minZoomLevel < 0.6 ? 0.5 : _minZoomLevel; // Prefer 0.5x if possible
+      newZoomLevel =
+          _minZoomLevel < 0.6 ? 0.5 : _minZoomLevel; // Prefer 0.5x if possible
     } else {
       newZoomLevel = 1.0;
     }
@@ -433,7 +436,8 @@ class _CameraScreenState extends State<CameraScreen> {
     _currentZoomLevel = newZoomLevel;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Zoom alterado para ${_currentZoomLevel.toStringAsFixed(1)}x"),
+        content:
+            Text("Zoom alterado para ${_currentZoomLevel.toStringAsFixed(1)}x"),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -476,8 +480,10 @@ class _CameraScreenState extends State<CameraScreen> {
     return Icon(Icons.camera_alt, size: 40, color: Colors.white);
   }
 
-  Widget buildBottomControl(BuildContext context,
-      CameraController? controller,) {
+  Widget buildBottomControl(
+    BuildContext context,
+    CameraController? controller,
+  ) {
     return Positioned(
       bottom: 10,
       left: 0,
@@ -500,7 +506,8 @@ class _CameraScreenState extends State<CameraScreen> {
               height: 80.0, // Center button height
               child: FloatingActionButton(
                 onPressed: null, // onTap and onLongPress handle actions
-                backgroundColor: _isRecording ? Colors.red : const Color(0xFF001362),
+                backgroundColor:
+                    _isRecording ? Colors.red : const Color(0xFF001362),
                 child: buildCaptureIcon(context),
               ),
             ),
@@ -521,15 +528,17 @@ class _CameraScreenState extends State<CameraScreen> {
     );
   }
 
-  Widget buildFilterSelector(BuildContext context,
-      CameraController? controller,) {
+  Widget buildFilterSelector(
+    BuildContext context,
+    CameraController? controller,
+  ) {
     var textStyle = const TextStyle(
       color: Colors.white,
       fontWeight: FontWeight.bold,
       fontSize: 18,
     );
     var buttonStyle = ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF001362).withValues(alpha: 0.9),
+      backgroundColor: const Color(0xFF001362).withAlpha((0.9 * 255).toInt()),
       // Example item color
       shape: const CircleBorder(),
       padding: EdgeInsets.zero, // Remove default padding
@@ -537,45 +546,41 @@ class _CameraScreenState extends State<CameraScreen> {
     return Positioned(
       right: 0, // Adjust left position as needed
       child: SizedBox(
-        height:
-        MediaQuery
-            .of(context)
-            .size
-            .height * 0.5, // 50% of screen height
-        width: 70, // Adjust width as needed
-        child: Consumer<AuthProvider>(
-          builder: (context, authProvider, child) {
-            final filterList = authProvider.loggedUser?.getFiltersByCategory(widget.categoryName);
-            return ListView.builder(
-              itemCount: filterList!.length + 1,
-              itemBuilder: (context, index) {
-                if (index == 0) {
+          height:
+              MediaQuery.of(context).size.height * 0.5, // 50% of screen height
+          width: 70, // Adjust width as needed
+          child: Consumer<AuthProvider>(
+            builder: (context, authProvider, child) {
+              final filterList = authProvider.loggedUser
+                  ?.getFiltersByCategory(widget.categoryName);
+              return ListView.builder(
+                itemCount: filterList!.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                      child: ElevatedButton(
+                        onPressed: () => onClearFilter(),
+                        style: buttonStyle,
+                        child: Text('X', style: textStyle),
+                      ),
+                    );
+                  }
+                  final FilterModel filter = filterList[index - 1];
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: ElevatedButton(
-                      onPressed: () => onClearFilter(),
+                      onPressed: () => onFilterPressed(index - 1, filter),
                       style: buttonStyle,
-                      child: Text('X', style: textStyle),
+                      child: Text('${index}', style: textStyle),
                     ),
                   );
-                }
-                final FilterModel filter = filterList[index - 1];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: ElevatedButton(
-                    onPressed: () => onFilterPressed(index - 1, filter),
-                    style: buttonStyle,
-                    child: Text('${index}', style: textStyle),
-                  ),
-                );
-              },
-            );
-          },
-        )
-      ),
+                },
+              );
+            },
+          )),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -593,7 +598,8 @@ class _CameraScreenState extends State<CameraScreen> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () {
-              Provider.of<AuthProvider>(context, listen: false).clearSelectedFilter();
+              Provider.of<AuthProvider>(context, listen: false)
+                  .clearSelectedFilter();
               Navigator.pop(context);
             },
           ),
@@ -625,9 +631,11 @@ class _CameraScreenState extends State<CameraScreen> {
                     child: FloatingActionButton(
                       onPressed: onCameraFlip,
                       mini: true,
-                      backgroundColor:
-                          hasBothCameras() ? const Color(0xFF0037c6) : Colors.grey,
-                      child: const Icon(Icons.cameraswitch_sharp, color: Colors.white),
+                      backgroundColor: hasBothCameras()
+                          ? const Color(0xFF0037c6)
+                          : Colors.grey,
+                      child: const Icon(Icons.cameraswitch_sharp,
+                          color: Colors.white),
                     ),
                   ),
                   Positioned(
@@ -639,7 +647,8 @@ class _CameraScreenState extends State<CameraScreen> {
                         backgroundColor: _minZoomLevel >= 1
                             ? Colors.grey
                             : const Color(0xFF0037c6),
-                        child: const Icon(Icons.camera, color: Colors.white), // Example icon
+                        child: const Icon(Icons.camera,
+                            color: Colors.white), // Example icon
                       )),
                 ],
               );

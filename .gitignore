@@ -47,3 +47,6 @@ android/.gradle
 android/.kotlin
 
 **/node_modules
+
+# FVM Version Cache
+.fvm/

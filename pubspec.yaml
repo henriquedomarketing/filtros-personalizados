@@ -20,7 +20,7 @@ version: 1.0.0+1
 
 environment:
   # sdk: 3.7.2 # 3.8.0-278.1.beta
-  sdk: '>=3.0.0 <4.0.0' # Upgrade Flutter SDK version
+  sdk: '>=3.2.0 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -42,7 +42,7 @@ dependencies:
   open_file: ^3.5.10
   permission_handler: ^12.0.0
   provider: ^6.1.5
-  open_file_manager:
+  open_file_manager: 2.0.1
   image_picker: 1.1.2
   # Firebase
   firebase_core:

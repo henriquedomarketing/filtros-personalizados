@@ -205,8 +205,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 SupportButton(),
                                 authProvider.error != null
                                     ? Container(
-                                        color:
-                                            Colors.red.withValues(alpha: 0.25),
+                                        color: Colors.red
+                                            .withAlpha((0.25 * 255).toInt()),
                                         margin: const EdgeInsets.only(top: 10),
                                         child: Text(
                                           authProvider.error!,
