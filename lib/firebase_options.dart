@@ -17,29 +17,17 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for ios - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return ios;
       case TargetPlatform.macOS:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for macos - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return macos;
       case TargetPlatform.windows:
-        throw UnsupportedError(
-          'DefaultFirebaseOptions have not been configured for windows - '
-          'you can reconfigure this by running the FlutterFire CLI again.',
-        );
+        return windows;
       case TargetPlatform.linux:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for linux - '
@@ -59,4 +47,41 @@ class DefaultFirebaseOptions {
     projectId: 'cameramarketing-91d5a',
     storageBucket: 'cameramarketing-91d5a.firebasestorage.app',
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyBz7HN1me3Js8XOTeVD7zfTVLI9MUbMc3U',
+    appId: '1:389801053746:web:41d0d7c834d2dc1f1b762b',
+    messagingSenderId: '389801053746',
+    projectId: 'cameramarketing-91d5a',
+    authDomain: 'cameramarketing-91d5a.firebaseapp.com',
+    storageBucket: 'cameramarketing-91d5a.firebasestorage.app',
+  );
+
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyAUAwO3IWhzVrdFm3xmCv6HB_S_mAbzPNw',
+    appId: '1:389801053746:ios:55dbaa2469a681271b762b',
+    messagingSenderId: '389801053746',
+    projectId: 'cameramarketing-91d5a',
+    storageBucket: 'cameramarketing-91d5a.firebasestorage.app',
+    iosBundleId: 'com.asyncstudio.cameraMarketingApp',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyAUAwO3IWhzVrdFm3xmCv6HB_S_mAbzPNw',
+    appId: '1:389801053746:ios:55dbaa2469a681271b762b',
+    messagingSenderId: '389801053746',
+    projectId: 'cameramarketing-91d5a',
+    storageBucket: 'cameramarketing-91d5a.firebasestorage.app',
+    iosBundleId: 'com.asyncstudio.cameraMarketingApp',
+  );
+
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyBz7HN1me3Js8XOTeVD7zfTVLI9MUbMc3U',
+    appId: '1:389801053746:web:d90cd70eedfe688c1b762b',
+    messagingSenderId: '389801053746',
+    projectId: 'cameramarketing-91d5a',
+    authDomain: 'cameramarketing-91d5a.firebaseapp.com',
+    storageBucket: 'cameramarketing-91d5a.firebasestorage.app',
+  );
+
 }
