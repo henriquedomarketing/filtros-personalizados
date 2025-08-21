@@ -32,10 +32,11 @@ class CameraMarketingApp extends StatelessWidget {
         ChangeNotifierProvider<ConfigProvider>(create: (_) => ConfigProvider()..fetchConfig()),
       ],
       child: MaterialApp(
-        title: 'Camera Marketing',
+        title: 'Filtros personalizados',
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF001362)),
         ),
+        debugShowCheckedModeBanner: false,
         initialRoute: "/",
         onGenerateRoute: (settings) {
           switch (settings.name) {
