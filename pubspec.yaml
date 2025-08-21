@@ -54,6 +54,7 @@ dependencies:
   flutter_spinbox: ^0.13.1
   url_launcher: 6.3.1
   shared_preferences: ^2.5.3
+  image_gallery_saver_plus: ^4.0.1
 
 dev_dependencies:
   flutter_test:

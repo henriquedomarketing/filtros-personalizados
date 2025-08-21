@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_file_manager/open_file_manager.dart';
 import 'package:share_plus/share_plus.dart';
@@ -69,14 +70,25 @@ class _VideoPreviewState extends State<VideoPreview> {
       final url = await futureOutputVideoUrl;
       if (url == null) return;
       await CompanyService.downloadAndSaveVideo(url);
-      final docsDir = await Utils.getSaveDirectory();
-      openFileManager(
-        androidConfig: AndroidConfig(
-          folderType: AndroidFolderType.other,
-          folderPath: docsDir!.path,
-        ),
-        iosConfig: IosConfig(folderPath: docsDir.path),
-      );
+      if (Platform.isAndroid) {
+        // Only open file manager on Android
+        final docsDir = await Utils.getSaveDirectory();
+        openFileManager(
+          androidConfig: AndroidConfig(
+            folderType: AndroidFolderType.other,
+            folderPath: docsDir!.path,
+          ),
+          iosConfig: IosConfig(folderPath: docsDir.path),
+        );
+      } else {
+        // Show success message for iOS
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vídeo salvo com sucesso!'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
       setState(() {
         alreadySaved = true;
       });
@@ -101,7 +113,10 @@ class _VideoPreviewState extends State<VideoPreview> {
                 Widget content =
                     const Center(child: CircularProgressIndicator());
                 final controller = videoControllerSnapshot.data;
-                final url = videoOutputSnapshot.connectionState != ConnectionState.done ? null : videoOutputSnapshot.data;
+                final url =
+                    videoOutputSnapshot.connectionState != ConnectionState.done
+                        ? null
+                        : videoOutputSnapshot.data;
                 if (videoOutputSnapshot.connectionState !=
                     ConnectionState.done) {
                   content = const Center(child: CircularProgressIndicator());
@@ -117,8 +132,10 @@ class _VideoPreviewState extends State<VideoPreview> {
                     videoOutputSnapshot.connectionState ==
                         ConnectionState.done) {
                   content = SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.8, // Adjust width as needed
-                    height: MediaQuery.of(context).size.height * 0.6, // Adjust height as needed
+                    width: MediaQuery.of(context).size.width *
+                        0.8, // Adjust width as needed
+                    height: MediaQuery.of(context).size.height *
+                        0.6, // Adjust height as needed
                     child: FittedBox(
                       fit: BoxFit.contain,
                       child: SizedBox(
@@ -150,34 +167,37 @@ class _VideoPreviewState extends State<VideoPreview> {
                         child: const Text('Fechar'),
                       ),
                       SizedBox(width: 15),
-                      url != null && !saveLoading ? TextButton(
-                        onPressed: alreadySaved ? null : () => onPreviewSave(),
-                        style: TextButton.styleFrom(
-                          foregroundColor: alreadySaved
-                              ? Theme.of(context).disabledColor
-                              : Theme.of(context).primaryColor,
-                        ),
-                        child: const Text('SALVAR'),
-                      ) : const SizedBox(
-                          width: 40,
-                          height: 5,
-                          child: LinearProgressIndicator()
-                      ),
-                      url != null ? IconButton(
-                        onPressed: () {
-                          controller?.play();
-                        },
-                        style: IconButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                        ),
-                        icon: Icon(
-                          Icons.play_circle_fill,
-                        ),
-                      ) : const SizedBox(
-                          width: 40,
-                          height: 5,
-                          child: LinearProgressIndicator()
-                      ),
+                      url != null && !saveLoading
+                          ? TextButton(
+                              onPressed:
+                                  alreadySaved ? null : () => onPreviewSave(),
+                              style: TextButton.styleFrom(
+                                foregroundColor: alreadySaved
+                                    ? Theme.of(context).disabledColor
+                                    : Theme.of(context).primaryColor,
+                              ),
+                              child: const Text('SALVAR'),
+                            )
+                          : const SizedBox(
+                              width: 40,
+                              height: 5,
+                              child: LinearProgressIndicator()),
+                      url != null
+                          ? IconButton(
+                              onPressed: () {
+                                controller?.play();
+                              },
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                              ),
+                              icon: Icon(
+                                Icons.play_circle_fill,
+                              ),
+                            )
+                          : const SizedBox(
+                              width: 40,
+                              height: 5,
+                              child: LinearProgressIndicator()),
                     ],
                   ),
                 );

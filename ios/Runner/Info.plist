@@ -45,5 +45,16 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Camera permissions -->
+	<key>NSCameraUsageDescription</key>
+	<string>Este aplicativo precisa acessar a câmera para capturar fotos e vídeos com filtros personalizados.</string>
+	<!-- Photo library permissions -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Este aplicativo precisa acessar sua galeria de fotos para salvar imagens processadas.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Este aplicativo precisa salvar fotos processadas na sua galeria.</string>
+	<!-- Microphone permissions for video recording -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Este aplicativo precisa acessar o microfone para gravar vídeos.</string>
 </dict>
 </plist>

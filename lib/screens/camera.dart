@@ -148,17 +148,35 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void onPreviewSave(String filePath) async {
-    final success = await Utils.copyFileToSaveDirectory(filePath);
+    final success = await Utils.saveImageToGallery(filePath);
     if (success) {
-      await openFileManager(
-        androidConfig: AndroidConfig(
-          folderType: AndroidFolderType.other,
-          folderPath: (await Utils.getSaveDirectory())!.path,
-        ),
-        iosConfig:
-            IosConfig(folderPath: (await Utils.getSaveDirectory())!.path),
-      );
+      if (Platform.isAndroid) {
+        // Only open file manager on Android
+        await openFileManager(
+          androidConfig: AndroidConfig(
+            folderType: AndroidFolderType.other,
+            folderPath: (await Utils.getSaveDirectory())!.path,
+          ),
+          iosConfig:
+              IosConfig(folderPath: (await Utils.getSaveDirectory())!.path),
+        );
+      } else {
+        // Show success message for iOS
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Imagem salva na galeria com sucesso!'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
       Navigator.of(context).pop();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao salvar imagem'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
