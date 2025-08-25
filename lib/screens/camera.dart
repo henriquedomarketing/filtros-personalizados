@@ -67,25 +67,25 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void loadCameras() async {
-    setState(()=>_isLoading=true);
+    setState(() => _isLoading = true);
     List<CameraDescription> localCameras = await availableCameras();
 
     print("[loadCameras] cameras");
     print(localCameras);
     setState(() {
       cameras = localCameras;
-      if(cameras.isNotEmpty){
+      if (cameras.isNotEmpty) {
         frontCamera = localCameras.firstWhere(
-                (camera) => camera.lensDirection == CameraLensDirection.front,
-              );
+          (camera) => camera.lensDirection == CameraLensDirection.front,
+        );
         backCamera = localCameras.firstWhere(
-                (camera) => camera.lensDirection == CameraLensDirection.back,
-              );
+          (camera) => camera.lensDirection == CameraLensDirection.back,
+        );
         setSelectedCamera(
-                backCamera != null ? CameraMode.back : CameraMode.front,
-              );
+          backCamera != null ? CameraMode.back : CameraMode.front,
+        );
       }
-     _isLoading=false;
+      _isLoading = false;
     });
   }
 
@@ -96,7 +96,7 @@ class _CameraScreenState extends State<CameraScreen> {
   void setSelectedCamera(CameraMode newMode) {
     final cameraDescription =
         newMode == CameraMode.front ? frontCamera : backCamera;
-        
+
     setState(() {
       selectedCamera = newMode;
       if (cameraDescription != null) {
@@ -207,7 +207,7 @@ class _CameraScreenState extends State<CameraScreen> {
         print('Image selected: ${image.path}');
         final processedImagePath = await _processImage(
             image.path, getSelectedFilter()!.url,
-            matchSourceSize: false);
+            matchSourceSize: true);
         showImagePreview(processedImagePath!);
       }
     } finally {
@@ -629,67 +629,72 @@ class _CameraScreenState extends State<CameraScreen> {
           ),
         ),
         backgroundColor: Colors.transparent,
-        body: Builder(
-          builder: (context) {
-            if(_isLoading){
-              return Center(child: CircularProgressIndicator(),);
-            }
-            if(cameras.isEmpty) {
-              return Center(child: Text('Câmera não disponível nesse dispositivo',style: TextStyle(color: Colors.white),),);
-            }
+        body: Builder(builder: (context) {
+          if (_isLoading) {
             return Center(
-              child: FutureBuilder<CameraController>(
-                future: _currentCameraFuture, // Use the nullable Future
-                builder: (context, snapshot) {
-                  Widget cameraPreview = const Center(
-                    child: CircularProgressIndicator(),
-                  );
-
-                  if (snapshot.connectionState == ConnectionState.done) {
-                    cameraPreview = CameraOverlay(
-                      key: ValueKey(selectedCamera),
-                      cameraController: snapshot.data,
-                    );
-                  }
-            
-                  return Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      cameraPreview,
-                      buildBottomControl(context, snapshot.data),
-                      buildFilterSelector(context, snapshot.data),
-                      Positioned(
-                        top: 10,
-                        right: 10,
-                        child: FloatingActionButton(
-                          onPressed: onCameraFlip,
-                          mini: true,
-                          backgroundColor: hasBothCameras()
-                              ? const Color(0xFF0037c6)
-                              : Colors.grey,
-                          child: const Icon(Icons.cameraswitch_sharp,
-                              color: Colors.white),
-                        ),
-                      ),
-                      Positioned(
-                          top: 10,
-                          left: 10,
-                          child: FloatingActionButton(
-                            onPressed: onToggleZoom,
-                            mini: true,
-                            backgroundColor: _minZoomLevel >= 1
-                                ? Colors.grey
-                                : const Color(0xFF0037c6),
-                            child: const Icon(Icons.camera,
-                                color: Colors.white), // Example icon
-                          )),
-                    ],
-                  );
-                },
+              child: CircularProgressIndicator(),
+            );
+          }
+          if (cameras.isEmpty) {
+            return Center(
+              child: Text(
+                'Câmera não disponível nesse dispositivo',
+                style: TextStyle(color: Colors.white),
               ),
             );
           }
-        ),
+          return Center(
+            child: FutureBuilder<CameraController>(
+              future: _currentCameraFuture, // Use the nullable Future
+              builder: (context, snapshot) {
+                Widget cameraPreview = const Center(
+                  child: CircularProgressIndicator(),
+                );
+
+                if (snapshot.connectionState == ConnectionState.done) {
+                  cameraPreview = CameraOverlay(
+                    key: ValueKey(selectedCamera),
+                    cameraController: snapshot.data,
+                  );
+                }
+
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    cameraPreview,
+                    buildBottomControl(context, snapshot.data),
+                    buildFilterSelector(context, snapshot.data),
+                    Positioned(
+                      top: 10,
+                      right: 10,
+                      child: FloatingActionButton(
+                        onPressed: onCameraFlip,
+                        mini: true,
+                        backgroundColor: hasBothCameras()
+                            ? const Color(0xFF0037c6)
+                            : Colors.grey,
+                        child: const Icon(Icons.cameraswitch_sharp,
+                            color: Colors.white),
+                      ),
+                    ),
+                    Positioned(
+                        top: 10,
+                        left: 10,
+                        child: FloatingActionButton(
+                          onPressed: onToggleZoom,
+                          mini: true,
+                          backgroundColor: _minZoomLevel >= 1
+                              ? Colors.grey
+                              : const Color(0xFF0037c6),
+                          child: const Icon(Icons.camera,
+                              color: Colors.white), // Example icon
+                        )),
+                  ],
+                );
+              },
+            ),
+          );
+        }),
         floatingActionButton: null,
         drawer: null,
         bottomNavigationBar: null,
