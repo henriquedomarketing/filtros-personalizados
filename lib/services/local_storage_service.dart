@@ -69,6 +69,7 @@ class LocalStorageService {
   }
 
   static Future<bool> canTakeVideo() async {
+    return true;
     final prefs = await SharedPreferences.getInstance();
     final lastVideoTimestamp = prefs.getInt(VIDEO_TIMESTAMP_KEY) ?? 0;
     final videoCount = prefs.getInt(VIDEO_COUNTER_KEY) ?? 0;

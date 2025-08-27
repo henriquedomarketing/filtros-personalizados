@@ -4,13 +4,16 @@ import 'package:camera/camera.dart';
 import 'package:camera_marketing_app/components/camera_overlay.dart';
 import 'package:camera_marketing_app/models/filter_model.dart';
 import 'package:camera_marketing_app/services/local_storage_service.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
+import 'package:open_file/open_file.dart';
 import 'package:open_file_manager/open_file_manager.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -41,6 +44,7 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<CameraController>? _currentCameraFuture;
   bool _isLoadingUpload = false;
   bool _isLoading = false;
+  bool _isLoadingDownloadFilter = false;
   bool _isRecording = false;
   double _currentZoomLevel = 1.0;
   double _minZoomLevel = 1.0;
@@ -479,6 +483,48 @@ class _CameraScreenState extends State<CameraScreen> {
     Provider.of<AuthProvider>(context, listen: false).setSelectedFilter(filter);
   }
 
+  Future<void> onFilterLongPress(int index, FilterModel filter) async {
+    try {
+      setState(() {
+        _isLoadingDownloadFilter = true;
+      });
+      final response = await http.get(Uri.parse(filter.url));
+      if (response.statusCode != 200) {
+        print('Failed to download image: ${response.statusCode}');
+        return null;
+      }
+      final overlayImageBytes = response.bodyBytes;
+      // final overlayImageBytes = await DefaultAssetBundle.of(
+      //   context,
+      // ).load(filterImageUrl);
+      final overlayImage = img.decodeImage(
+        overlayImageBytes.buffer.asUint8List(),
+      );
+      if (overlayImage == null) return null;
+      final directory = await Utils.getSaveDirectory();
+      if (directory == null) {
+        return null;
+      }
+      setState(() {
+        _isLoadingDownloadFilter = false;
+      });
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filePath = '${directory.path}/composite_image_$timestamp.png';
+
+      final _newFile = File(filePath)
+        ..writeAsBytesSync(img.encodePng(overlayImage));
+      print(_newFile);
+      showImagePreview(filePath);
+    } catch (e) {
+      print("Erro ao baixar: $e");
+      return null;
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   void showNoFilterMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -594,6 +640,7 @@ class _CameraScreenState extends State<CameraScreen> {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
                     child: ElevatedButton(
+                      onLongPress: () => onFilterLongPress(index - 1, filter),
                       onPressed: () => onFilterPressed(index - 1, filter),
                       style: buttonStyle,
                       child: Text('${index}', style: textStyle),
@@ -689,6 +736,19 @@ class _CameraScreenState extends State<CameraScreen> {
                           child: const Icon(Icons.camera,
                               color: Colors.white), // Example icon
                         )),
+                    if (_isLoadingDownloadFilter)
+                      Positioned.fill(
+                        child: Container(
+                          color: Colors.black.withValues(
+                              alpha: 0.5), // Fundo escuro transparente
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 );
               },
