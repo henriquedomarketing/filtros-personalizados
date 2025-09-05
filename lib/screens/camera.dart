@@ -555,7 +555,9 @@ class _CameraScreenState extends State<CameraScreen> {
     CameraController? controller,
   ) {
     return Container(
-      margin: EdgeInsets.only(bottom: 18),
+      /*bottom: 10,
+      left: 0,
+      right: 0,*/
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
