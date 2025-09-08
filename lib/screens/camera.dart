@@ -558,6 +558,7 @@ class _CameraScreenState extends State<CameraScreen> {
       /*bottom: 10,
       left: 0,
       right: 0,*/
+      margin: EdgeInsets.only(top: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
@@ -694,8 +695,11 @@ class _CameraScreenState extends State<CameraScreen> {
             child: FutureBuilder<CameraController>(
               future: _currentCameraFuture, // Use the nullable Future
               builder: (context, snapshot) {
-                Widget cameraPreview = const Center(
-                  child: CircularProgressIndicator(),
+                Widget cameraPreview = SizedBox(
+                  height: 400,
+                  child: const Center(
+                    child: CircularProgressIndicator(),
+                  ),
                 );
 
                 if (snapshot.connectionState == ConnectionState.done) {
@@ -707,52 +711,50 @@ class _CameraScreenState extends State<CameraScreen> {
 
                 return Column(
                   children: [
-                    Expanded(
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          cameraPreview,
-                          buildFilterSelector(context, snapshot.data),
-                          Positioned(
-                            top: 10,
-                            right: 10,
-                            child: FloatingActionButton(
-                              onPressed: onCameraFlip,
-                              mini: true,
-                              backgroundColor: hasBothCameras()
-                                  ? const Color(0xFF0037c6)
-                                  : Colors.grey,
-                              child: const Icon(Icons.cameraswitch_sharp,
-                                  color: Colors.white),
-                            ),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        cameraPreview,
+                        buildFilterSelector(context, snapshot.data),
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: FloatingActionButton(
+                            onPressed: onCameraFlip,
+                            mini: true,
+                            backgroundColor: hasBothCameras()
+                                ? const Color(0xFF0037c6)
+                                : Colors.grey,
+                            child: const Icon(Icons.cameraswitch_sharp,
+                                color: Colors.white),
                           ),
-                          Positioned(
-                              top: 10,
-                              left: 10,
-                              child: FloatingActionButton(
-                                onPressed: onToggleZoom,
-                                mini: true,
-                                backgroundColor: _minZoomLevel >= 1
-                                    ? Colors.grey
-                                    : const Color(0xFF0037c6),
-                                child: const Icon(Icons.camera,
-                                    color: Colors.white), // Example icon
-                              )),
-                          if (_isLoadingDownloadFilter)
-                            Positioned.fill(
-                              child: Container(
-                                color: Colors.black.withValues(
-                                    alpha: 0.5), // Fundo escuro transparente
-                                child: const Center(
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Colors.white),
-                                  ),
+                        ),
+                        Positioned(
+                            top: 10,
+                            left: 10,
+                            child: FloatingActionButton(
+                              onPressed: onToggleZoom,
+                              mini: true,
+                              backgroundColor: _minZoomLevel >= 1
+                                  ? Colors.grey
+                                  : const Color(0xFF0037c6),
+                              child: const Icon(Icons.camera,
+                                  color: Colors.white), // Example icon
+                            )),
+                        if (_isLoadingDownloadFilter)
+                          Positioned.fill(
+                            child: Container(
+                              color: Colors.black.withValues(
+                                  alpha: 0.5), // Fundo escuro transparente
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
                                 ),
                               ),
                             ),
-                        ],
-                      ),
+                          ),
+                      ],
                     ),
                     buildBottomControl(context, snapshot.data),
                   ],
