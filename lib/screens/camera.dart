@@ -554,47 +554,49 @@ class _CameraScreenState extends State<CameraScreen> {
     BuildContext context,
     CameraController? controller,
   ) {
-    return Container(
-      /*bottom: 10,
+    return Positioned(
+      bottom: 10,
       left: 0,
-      right: 0,*/
-      margin: EdgeInsets.only(top: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          FloatingActionButton(
-            onPressed: onLeftAction,
-            mini: true,
-            backgroundColor: const Color(0xFF0037c6),
-            child: const Icon(Icons.image, color: Colors.white),
-          ),
-          GestureDetector(
-            onTap: () => _onTapCapture(controller!),
-            onLongPress: () => _startVideoRecording(controller!),
-            onLongPressUp: () => _stopVideoRecording(controller!),
-            child: SizedBox(
-              width: 80.0, // Center button width
-              height: 80.0, // Center button height
-              child: FloatingActionButton(
-                onPressed: null, // onTap and onLongPress handle actions
-                backgroundColor:
-                    _isRecording ? Colors.red : const Color(0xFF001362),
-                child: buildCaptureIcon(context),
+      right: 0,
+      child: Container(
+        color: Colors.black,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            FloatingActionButton(
+              onPressed: onLeftAction,
+              mini: true,
+              backgroundColor: const Color(0xFF0037c6),
+              child: const Icon(Icons.image, color: Colors.white),
+            ),
+            GestureDetector(
+              onTap: () => _onTapCapture(controller!),
+              onLongPress: () => _startVideoRecording(controller!),
+              onLongPressUp: () => _stopVideoRecording(controller!),
+              child: SizedBox(
+                width: 80.0, // Center button width
+                height: 80.0, // Center button height
+                child: FloatingActionButton(
+                  onPressed: null, // onTap and onLongPress handle actions
+                  backgroundColor:
+                      _isRecording ? Colors.red : const Color(0xFF001362),
+                  child: buildCaptureIcon(context),
+                ),
               ),
             ),
-          ),
-          FloatingActionButton(
-            onPressed: () => onUploadImage(context),
-            mini: true,
-            backgroundColor: const Color(0xFF0037c6),
-            child: _isLoadingUpload
-                ? SizedBox(
-                    width: 25,
-                    height: 25,
-                    child: CircularProgressIndicator(color: Colors.white))
-                : const Icon(Icons.add_photo_alternate, color: Colors.white),
-          ),
-        ],
+            FloatingActionButton(
+              onPressed: () => onUploadImage(context),
+              mini: true,
+              backgroundColor: const Color(0xFF0037c6),
+              child: _isLoadingUpload
+                  ? SizedBox(
+                      width: 25,
+                      height: 25,
+                      child: CircularProgressIndicator(color: Colors.white))
+                  : const Icon(Icons.add_photo_alternate, color: Colors.white),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -691,72 +693,77 @@ class _CameraScreenState extends State<CameraScreen> {
               ),
             );
           }
-          return Container(
+          return Center(
             child: FutureBuilder<CameraController>(
               future: _currentCameraFuture, // Use the nullable Future
               builder: (context, snapshot) {
-                Widget cameraPreview = SizedBox(
-                  height: 400,
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                Widget cameraPreview = const Center(
+                  child: CircularProgressIndicator(),
                 );
 
                 if (snapshot.connectionState == ConnectionState.done) {
-                  cameraPreview = CameraOverlay(
-                    key: ValueKey(selectedCamera),
-                    cameraController: snapshot.data,
+                  cameraPreview = Container(
+                    padding: EdgeInsets.only(bottom: 90),
+                    child: CameraOverlay(
+                      key: ValueKey(selectedCamera),
+                      cameraController: snapshot.data,
+                    ),
                   );
                 }
 
                 return Column(
                   children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        cameraPreview,
-                        buildFilterSelector(context, snapshot.data),
-                        Positioned(
-                          top: 10,
-                          right: 10,
-                          child: FloatingActionButton(
-                            onPressed: onCameraFlip,
-                            mini: true,
-                            backgroundColor: hasBothCameras()
-                                ? const Color(0xFF0037c6)
-                                : Colors.grey,
-                            child: const Icon(Icons.cameraswitch_sharp,
-                                color: Colors.white),
-                          ),
-                        ),
-                        Positioned(
+                    Expanded(
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          cameraPreview,
+                          buildBottomControl(context, snapshot.data),
+                          buildFilterSelector(context, snapshot.data),
+                          Positioned(
                             top: 10,
-                            left: 10,
+                            right: 10,
                             child: FloatingActionButton(
-                              onPressed: onToggleZoom,
+                              onPressed: onCameraFlip,
                               mini: true,
-                              backgroundColor: _minZoomLevel >= 1
-                                  ? Colors.grey
-                                  : const Color(0xFF0037c6),
-                              child: const Icon(Icons.camera,
-                                  color: Colors.white), // Example icon
-                            )),
-                        if (_isLoadingDownloadFilter)
-                          Positioned.fill(
-                            child: Container(
-                              color: Colors.black.withValues(
-                                  alpha: 0.5), // Fundo escuro transparente
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white),
+                              backgroundColor: hasBothCameras()
+                                  ? const Color(0xFF0037c6)
+                                  : Colors.grey,
+                              child: const Icon(Icons.cameraswitch_sharp,
+                                  color: Colors.white),
+                            ),
+                          ),
+                          Positioned(
+                              top: 10,
+                              left: 10,
+                              child: FloatingActionButton(
+                                onPressed: onToggleZoom,
+                                mini: true,
+                                backgroundColor: _minZoomLevel >= 1
+                                    ? Colors.grey
+                                    : const Color(0xFF0037c6),
+                                child: const Icon(Icons.camera,
+                                    color: Colors.white), // Example icon
+                              )),
+                          if (_isLoadingDownloadFilter)
+                            Positioned.fill(
+                              child: Container(
+                                color: Colors.black.withValues(
+                                    alpha: 0.5), // Fundo escuro transparente
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                    buildBottomControl(context, snapshot.data),
+                    SizedBox(
+                      height: 24,
+                    ),
                   ],
                 );
               },
