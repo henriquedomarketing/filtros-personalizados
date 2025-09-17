@@ -4,16 +4,13 @@ import 'package:camera/camera.dart';
 import 'package:camera_marketing_app/components/camera_overlay.dart';
 import 'package:camera_marketing_app/models/filter_model.dart';
 import 'package:camera_marketing_app/services/local_storage_service.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
-import 'package:open_file/open_file.dart';
 import 'package:open_file_manager/open_file_manager.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -554,49 +551,45 @@ class _CameraScreenState extends State<CameraScreen> {
     BuildContext context,
     CameraController? controller,
   ) {
-    return Positioned(
-      bottom: 10,
-      left: 0,
-      right: 0,
-      child: Container(
-        color: Colors.black,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            FloatingActionButton(
-              onPressed: onLeftAction,
-              mini: true,
-              backgroundColor: const Color(0xFF0037c6),
-              child: const Icon(Icons.image, color: Colors.white),
-            ),
-            GestureDetector(
-              onTap: () => _onTapCapture(controller!),
-              onLongPress: () => _startVideoRecording(controller!),
-              onLongPressUp: () => _stopVideoRecording(controller!),
-              child: SizedBox(
-                width: 80.0, // Center button width
-                height: 80.0, // Center button height
-                child: FloatingActionButton(
-                  onPressed: null, // onTap and onLongPress handle actions
-                  backgroundColor:
-                      _isRecording ? Colors.red : const Color(0xFF001362),
-                  child: buildCaptureIcon(context),
-                ),
+    return Container(
+      color: Colors.black,
+      padding: EdgeInsets.only(top: 20, bottom: 32, left: 10, right: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          FloatingActionButton(
+            onPressed: onLeftAction,
+            mini: true,
+            backgroundColor: const Color(0xFF0037c6),
+            child: const Icon(Icons.image, color: Colors.white),
+          ),
+          GestureDetector(
+            onTap: () => _onTapCapture(controller!),
+            onLongPress: () => _startVideoRecording(controller!),
+            onLongPressUp: () => _stopVideoRecording(controller!),
+            child: SizedBox(
+              width: 80.0, // Center button width
+              height: 80.0, // Center button height
+              child: FloatingActionButton(
+                onPressed: null, // onTap and onLongPress handle actions
+                backgroundColor:
+                    _isRecording ? Colors.red : const Color(0xFF001362),
+                child: buildCaptureIcon(context),
               ),
             ),
-            FloatingActionButton(
-              onPressed: () => onUploadImage(context),
-              mini: true,
-              backgroundColor: const Color(0xFF0037c6),
-              child: _isLoadingUpload
-                  ? SizedBox(
-                      width: 25,
-                      height: 25,
-                      child: CircularProgressIndicator(color: Colors.white))
-                  : const Icon(Icons.add_photo_alternate, color: Colors.white),
-            ),
-          ],
-        ),
+          ),
+          FloatingActionButton(
+            onPressed: () => onUploadImage(context),
+            mini: true,
+            backgroundColor: const Color(0xFF0037c6),
+            child: _isLoadingUpload
+                ? SizedBox(
+                    width: 25,
+                    height: 25,
+                    child: CircularProgressIndicator(color: Colors.white))
+                : const Icon(Icons.add_photo_alternate, color: Colors.white),
+          ),
+        ],
       ),
     );
   }
@@ -667,7 +660,8 @@ class _CameraScreenState extends State<CameraScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.black,
+          elevation: 0,
           title: null,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -702,12 +696,9 @@ class _CameraScreenState extends State<CameraScreen> {
                 );
 
                 if (snapshot.connectionState == ConnectionState.done) {
-                  cameraPreview = Container(
-                    padding: EdgeInsets.only(bottom: 90),
-                    child: CameraOverlay(
-                      key: ValueKey(selectedCamera),
-                      cameraController: snapshot.data,
-                    ),
+                  cameraPreview = CameraOverlay(
+                    key: ValueKey(selectedCamera),
+                    cameraController: snapshot.data,
                   );
                 }
 
@@ -718,7 +709,6 @@ class _CameraScreenState extends State<CameraScreen> {
                         alignment: Alignment.center,
                         children: [
                           cameraPreview,
-                          buildBottomControl(context, snapshot.data),
                           buildFilterSelector(context, snapshot.data),
                           Positioned(
                             top: 10,
@@ -761,9 +751,7 @@ class _CameraScreenState extends State<CameraScreen> {
                         ],
                       ),
                     ),
-                    SizedBox(
-                      height: 24,
-                    ),
+                    buildBottomControl(context, snapshot.data),
                   ],
                 );
               },
