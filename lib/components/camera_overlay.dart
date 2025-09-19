@@ -1,6 +1,5 @@
 import 'package:camera/camera.dart';
 import 'package:camera_marketing_app/models/filter_model.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:camera_marketing_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -34,12 +33,7 @@ class _CameraOverlayState extends State<CameraOverlay> {
                       widget.cameraController!.value.previewSize?.width ?? 1920,
                   child: Stack(
                     children: [
-                      CameraPreview(
-                        widget.cameraController!,
-                        child: Positioned.fill(
-                          child: CustomPaint(painter: ThirdsGridPainter()),
-                        ),
-                      ),
+                      CameraPreview(widget.cameraController!),
                     ],
                   ),
                 ),
