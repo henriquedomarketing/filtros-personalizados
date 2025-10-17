@@ -1,6 +1,6 @@
 
 build:
-    flutter build apk
+	flutter build apk
 
 build-prod:
 	flutter build aab
