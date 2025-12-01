@@ -208,7 +208,7 @@ class _CameraScreenState extends State<CameraScreen> {
         print('Image selected: ${image.path}');
         final processedImagePath = await _processImage(
             image.path, getSelectedFilter()!.url,
-            matchSourceSize: true);
+            matchSourceSize: false);
         showImagePreview(processedImagePath!);
       }
     } finally {
@@ -268,10 +268,47 @@ class _CameraScreenState extends State<CameraScreen> {
   Future<String?> _processImage(
     String imagePath,
     String filterImageUrl, {
-    bool matchSourceSize = true,
+    bool matchSourceSize = false,
   }) async {
-    final originalImage = img.decodeImage(File(imagePath).readAsBytesSync());
+    var originalImage = img.decodeImage(File(imagePath).readAsBytesSync());
     if (originalImage == null) return null;
+
+    // Define target dimensions
+    const int targetWidth = 1080;
+    const int targetHeight = 1920;
+    const double targetAspectRatio = 9.0 / 16.0;
+
+    // Calculate the scaling factor
+    double scaleX = targetWidth / originalImage.width;
+    double scaleY = targetHeight / originalImage.height;
+    double scale = scaleX > scaleY
+        ? scaleX
+        : scaleY; // Use the larger scale factor to ensure minimum size
+
+    // Scale the image up or down
+    img.Image scaledImage;
+    if (scale != 1.0) {
+      scaledImage = img.copyResize(
+        originalImage,
+        width: (originalImage.width * scale).round(),
+        height: (originalImage.height * scale).round(),
+      );
+    } else {
+      scaledImage = originalImage;
+    }
+
+    // Calculate crop coordinates for center cropping
+    int cropX = (scaledImage.width - targetWidth) ~/ 2;
+    int cropY = (scaledImage.height - targetHeight) ~/ 2;
+
+    // Crop the image to the target size from the center
+    img.Image croppedImage = img.copyCrop(
+      scaledImage,
+      x: cropX,
+      y: cropY,
+      width: targetWidth,
+      height: targetHeight,
+    );
 
     // Download the image from the URL
     final response = await http.get(Uri.parse(filterImageUrl));
@@ -279,10 +316,7 @@ class _CameraScreenState extends State<CameraScreen> {
       print('Failed to download image: ${response.statusCode}');
       return null;
     }
-    final overlayImageBytes = response.bodyBytes;
-    // final overlayImageBytes = await DefaultAssetBundle.of(
-    //   context,
-    // ).load(filterImageUrl);
+    final overlayImageBytes = response.bodyBytes; // final overlayImageBytes = await DefaultAssetBundle.of( //   context, // ).load(filterImageUrl);
     final overlayImage = img.decodeImage(
       overlayImageBytes.buffer.asUint8List(),
     );
@@ -293,15 +327,15 @@ class _CameraScreenState extends State<CameraScreen> {
     if (matchSourceSize) {
       resizedOverlay = img.copyResize(
         overlayImage,
-        width: originalImage.width,
-        height: originalImage.height,
+        width: croppedImage.width,
+        height: croppedImage.height,
       );
     } else {
       resizedOverlay = overlayImage;
     }
 
     // Composite the images
-    final compositeImage = img.compositeImage(originalImage, resizedOverlay);
+    final compositeImage = img.compositeImage(croppedImage, resizedOverlay);
 
     // Save the composite image
     final directory = await Utils.getSaveDirectory();
