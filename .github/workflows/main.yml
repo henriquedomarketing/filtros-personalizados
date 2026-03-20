@@ -1,0 +1,78 @@
+name: "Build AAB on Tag"
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  build_and_pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Git user
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Fix flutter SDK folder permission
+        run: git config --global --add safe.directory /tmp/flutter/--
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        id: flutter-action
+        with:
+          architecture: x64
+      - run: |
+          git config --global --add safe.directory /opt/hostedtoolcache/flutter/${{ steps.flutter-action.outputs.CHANNEL }}-${{ steps.flutter-action.outputs.VERSION }}-${{ steps.flutter-action.outputs.ARCHITECTURE }}
+          flutter --version
+
+      - name: Parse Tag and Update pubspec.yaml
+        id: set-version
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#v}
+          
+          echo "Parsed version: $VERSION"
+          
+          # Update the version in pubspec.yaml
+          sed -i.bak "s/^version: .*/version: $VERSION+1/" pubspec.yaml
+          
+          echo "Updated pubspec.yaml:"
+          cat pubspec.yaml
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build AAB
+        id: build
+        run: flutter build appbundle --release
+
+      - name: Upload AAB Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release.aab
+          path: build/app/outputs/bundle/release/app-release.aab
+
+      - name: Commit and Push Version Update
+        if: success()  # Only run if build step succeeds
+        run: |
+          NEW_BRANCH="version-update-${GITHUB_REF#refs/tags/}"
+          git checkout -b "$NEW_BRANCH"
+          git add pubspec.yaml
+          git commit -m "Update version to match tag ${GITHUB_REF#refs/tags/}"
+          git push origin "$NEW_BRANCH"
+
+      - name: Create Pull Request
+        if: success()  # Only run if build step succeeds
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Update version to match tag ${{GITHUB_REF#refs/tags/}}"
+          title: "Version update to ${{GITHUB_REF#refs/tags/}}"
+          body: "This PR updates the version in pubspec.yaml to match the release tag ${{GITHUB_REF#refs/tags/}}."
+          base: master
+          branch: version-update-${{ github.ref_name }}

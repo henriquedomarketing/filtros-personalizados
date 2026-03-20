@@ -1,0 +1,197 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:camera_marketing_app/models/company_model.dart';
+import 'package:camera_marketing_app/models/filter_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
+
+import '../utils.dart';
+
+const BUCKET_NAME = "filtros";
+const VIDEO_INPUT_BUCKET = "videos_input";
+const BANNER_FILENAME = "banner_800";
+final JsonEncoder encoder = JsonEncoder.withIndent('  ');
+
+final MOCK_COMPANY = CompanyModel(filters: [
+  FilterModel(name: "My Filter", url: "https://www.gstatic.com/mobilesdk/240501_mobilesdk/firebase_28dp.png", category: "Vendas"),
+], login: "admin@admin.com", name: "ADMIN", admin: false);
+
+final MOCK_ADMIN = CompanyModel(filters: [
+  FilterModel(name: "My Filter", url: "https://www.gstatic.com/mobilesdk/240501_mobilesdk/firebase_28dp.png", category: "Vendas"),
+], login: "admin@admin.com", name: "ADMIN", admin: true);
+
+class CompanyService {
+  static CollectionReference usersDb = 
+    FirebaseFirestore.instance.collection('users').withConverter(
+      fromFirestore: (snapshot, _) => CompanyModel.fromJson(snapshot.data()!),
+      toFirestore: (model, _) => (model as CompanyModel).toJson(),
+    );
+
+  static Future<CompanyModel?> getCompanyById(String uid) async {
+    final doc = await usersDb.doc(uid).get();
+    if (!doc.exists) return null;
+    final data = doc.data() as CompanyModel;
+    return CompanyModel.fromJson({...data.toJson(), 'uid': doc.id});
+  }
+
+  static Future<String?> adminRegisterCompany(
+    String email,
+    String password,
+    String name,
+  ) async {
+    try {
+      print("[REGISTER COMPANY] start");
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      print("[REGISTER COMPANY] created userCredential ${userCredential.toString()}");
+      String uid = userCredential.user!.uid;
+
+      CompanyModel docModel = CompanyModel(name: name, login: email, admin: false, filters: []);
+      await usersDb.doc(uid).set(docModel);
+      print("[REGISTER COMPANY] saved doc to firestore");
+      print(encoder.convert(docModel.toJson()));
+      print('Usuário registrado com sucesso!');
+      return null;
+    } on FirebaseAuthException catch (e, stackTrace) {
+      print('Erro ao registrar usuário: ${e.message}');
+      print(stackTrace);
+      return 'Erro ao registrar usuário: ${e.message}';
+    } catch (e, stackTrace) {
+      print('Erro ao registrar usuário: $e');
+      print(stackTrace);
+      return 'Erro desconhecido: $e';
+    }
+  }
+
+  static Future<CompanyModel?> login(String email, String password) async {
+    UserCredential userCredential = await FirebaseAuth.instance
+        .signInWithEmailAndPassword(email: email, password: password);
+    String uid = userCredential.user!.uid;
+    final CompanyModel doc = await usersDb.doc(uid).get().then((s) => s.data() as CompanyModel);
+    print("LOGIN SUCESSFUL:");
+    print(encoder.convert(doc));
+    return doc;
+  }
+
+  static Future<void> createFilterForCompany(String name, String filePath, String category, CompanyModel company, {int order = 0}) async {
+    try {
+      final file = File(filePath);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final filterFileName = "${company.name}__${name}__$timestamp.png";
+      final storageRef = FirebaseStorage.instance
+          .ref(BUCKET_NAME)
+          .child(filterFileName);
+      await storageRef.putFile(file);
+      final bucketUrl = await storageRef.getDownloadURL();
+
+      final orderedFilters = company.filters;
+      orderedFilters.insert(order, FilterModel(name: name, url: bucketUrl, category: category));
+      await usersDb.doc(company.uid!).update({'filters': orderedFilters.map((f) => f.toJson()).toList()});
+    } catch (e, stackTrace) {
+      print(e);
+      print(stackTrace);
+    }
+  }
+
+  static Future<List<CompanyModel>> fetchCompanies() async {
+    final usersRef = await usersDb.where('admin', isEqualTo: false).get();
+    final users = usersRef.docs;
+    return users.map((s) {
+      final data = s.data() as CompanyModel;
+      return CompanyModel.fromJson({...data.toJson(), 'uid': s.id});
+    }).toList();
+  }
+
+  static Future<bool> uploadBanner(String imagePath) async {
+    try {
+      final file = File(imagePath);
+      final storageRef = FirebaseStorage.instance
+          .ref("/")
+          .child(BANNER_FILENAME);
+      await storageRef.putFile(file);
+      print('Banner uploaded successfully!');
+      return true;
+    } catch (e, stackTrace) {
+      print('Error uploading banner: $e');
+      print(stackTrace);
+      return false;
+    }
+  }
+
+  static Future<String?> uploadAndProcessVideo(String videoPath, String filterUrl) async {
+    try {
+      print("[COMPANY_SERVICE] Uploading video to bucket!");
+      final file = File(videoPath);
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final originalFileName = videoPath.split('/').last;
+      final videoFileName = "${timestamp}__${originalFileName}";
+      final storageRef = FirebaseStorage.instance
+          .ref(VIDEO_INPUT_BUCKET)
+          .child(videoFileName);
+      await storageRef.putFile(file);
+
+      print("[COMPANY_SERVICE] DONE! videoName = $videoFileName filterUrl = $filterUrl");
+      print("[COMPANY_SERVICE] Making request to process video!");
+      final response = await http.post(
+        Uri.parse('https://processvideo-27ncrf2gpq-ue.a.run.app'),
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode(<String, String>{
+          'videoName': videoFileName,
+          'filterUrl': filterUrl,
+        }),
+      );
+
+      print("[COMPANY_SERVICE] DONE! status_code=${response.statusCode}");
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+        final outputVideoUrl = responseBody['videoUrl'] as String;
+        print('[COMPANY_SERVICE] Video processed successfully: $outputVideoUrl');
+        return outputVideoUrl;
+      } else {
+        throw Exception('Failed to process video: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+      print('Error uploading video: $e');
+      print(stackTrace);
+      throw e;
+    }
+  }
+
+  static Future<void> downloadAndSaveVideo(String videoUrl) async {
+    try {
+      final response = await http.get(Uri.parse(videoUrl));
+      if (response.statusCode == 200) {
+        final docsDir = await Utils.getSaveDirectory();
+        final fileName = "${DateTime.now().millisecondsSinceEpoch}.mp4";
+        final filePath = '${docsDir!.path}/$fileName';
+        final file = File(filePath);
+        await file.writeAsBytes(response.bodyBytes);
+        print('Video downloaded and saved successfully! $filePath');
+        CompanyService.deleteVideoOutput(videoUrl);
+      } else {
+        throw Exception('Failed to download video: ${response.statusCode}');
+      }
+    } catch (e, stackTrace) {
+     print(e);
+     print(stackTrace);
+     rethrow;
+    }
+  }
+
+  static Future<void> deleteVideoOutput(String videoUrl) async {
+    try {
+      final fileName = videoUrl.split('/').last.split('?').first;
+      final storageRef = FirebaseStorage.instance.ref(VIDEO_INPUT_BUCKET).child(fileName);
+      await storageRef.delete();
+    } catch (e, stackTrace) {
+      print(e);
+      print(stackTrace);
+    }
+  }
+}
