@@ -2,16 +2,17 @@ import 'package:camera_marketing_app/providers/admin_provider.dart';
 import 'package:camera_marketing_app/providers/config_provider.dart';
 import 'package:camera_marketing_app/screens/admin_company.dart';
 import 'package:camera_marketing_app/screens/admin_filters.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
-import 'package:camera_marketing_app/screens/camera.dart';
 import 'package:camera_marketing_app/screens/categories.dart';
 import 'package:camera_marketing_app/screens/login.dart';
 import 'package:camera_marketing_app/screens/admin_panel.dart';
+import 'package:camera_marketing_app/screens/camera.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:provider/provider.dart';
-import 'package:camera_marketing_app/providers/auth_provider.dart';
+import 'package:camera_marketing_app/providers/auth_provider.dart' as app_auth;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +28,7 @@ class CameraMarketingApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider<AuthProvider>(create: (_) => AuthProvider()),
+        ChangeNotifierProvider<app_auth.AuthProvider>(create: (_) => app_auth.AuthProvider()),
         ChangeNotifierProvider<AdminProvider>(create: (_) => AdminProvider()),
         ChangeNotifierProvider<ConfigProvider>(create: (_) => ConfigProvider()..fetchConfig()),
       ],
@@ -41,7 +42,7 @@ class CameraMarketingApp extends StatelessWidget {
         onGenerateRoute: (settings) {
           switch (settings.name) {
             case "/":
-              return MaterialPageRoute(builder: (context) => const LoginScreen());
+              return MaterialPageRoute(builder: (context) => const AuthGate());
             case "/categories":
               return MaterialPageRoute(builder: (context) => const CategoriesScreen());
             case "/camera":
@@ -54,10 +55,32 @@ class CameraMarketingApp extends StatelessWidget {
             case "/admin/filter":
               return MaterialPageRoute(builder: (context) => const AdminFilterScreen());
             default:
-              return MaterialPageRoute(builder: (context) => const LoginScreen());
+              return MaterialPageRoute(builder: (context) => const AuthGate());
           }
         },
       ),
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasData) {
+          return const CategoriesScreen();
+        }
+        return const LoginScreen();
+      },
     );
   }
 }

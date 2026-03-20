@@ -30,13 +30,6 @@ class CompanyService {
       toFirestore: (model, _) => (model as CompanyModel).toJson(),
     );
 
-  static Future<CompanyModel?> getCompanyById(String uid) async {
-    final doc = await usersDb.doc(uid).get();
-    if (!doc.exists) return null;
-    final data = doc.data() as CompanyModel;
-    return CompanyModel.fromJson({...data.toJson(), 'uid': doc.id});
-  }
-
   static Future<String?> adminRegisterCompany(
     String email,
     String password,
@@ -44,12 +37,15 @@ class CompanyService {
   ) async {
     try {
       print("[REGISTER COMPANY] start");
+      // Cria o usuário com e-mail e senha
       UserCredential userCredential = await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: password);
 
       print("[REGISTER COMPANY] created userCredential ${userCredential.toString()}");
+      // Obtém o UID do usuário criado
       String uid = userCredential.user!.uid;
 
+      // Salva informações adicionais no Firestore
       CompanyModel docModel = CompanyModel(name: name, login: email, admin: false, filters: []);
       await usersDb.doc(uid).set(docModel);
       print("[REGISTER COMPANY] saved doc to firestore");
@@ -68,6 +64,8 @@ class CompanyService {
   }
 
   static Future<CompanyModel?> login(String email, String password) async {
+    // await Future.delayed(Duration(seconds: 1));
+    // return MOCK_ADMIN;
     UserCredential userCredential = await FirebaseAuth.instance
         .signInWithEmailAndPassword(email: email, password: password);
     String uid = userCredential.user!.uid;
@@ -98,6 +96,14 @@ class CompanyService {
   }
 
   static Future<List<CompanyModel>> fetchCompanies() async {
+    // await Future.delayed(Duration(seconds: 1));
+    // return [
+    //   CompanyModel(name: "Empresa 1", filters: [
+    //     FilterModel(name: "ABC", url: ""),
+    //     FilterModel(name: "DEF", url: ""),
+    //   ]),
+    //   CompanyModel(name: "Empresa 2", filters: [])
+    // ];
     final usersRef = await usersDb.where('admin', isEqualTo: false).get();
     final users = usersRef.docs;
     return users.map((s) {
@@ -137,6 +143,7 @@ class CompanyService {
       print("[COMPANY_SERVICE] DONE! videoName = $videoFileName filterUrl = $filterUrl");
       print("[COMPANY_SERVICE] Making request to process video!");
       final response = await http.post(
+        // Uri.parse('http://localhost:5001/cameramarketing-91d5a/us-east1/processVideo'),
         Uri.parse('https://processvideo-27ncrf2gpq-ue.a.run.app'),
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',

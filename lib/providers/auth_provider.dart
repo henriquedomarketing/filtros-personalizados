@@ -17,14 +17,20 @@ class AuthProvider with ChangeNotifier {
   String? get error => _error;
   FilterModel? get selectedFilter => _selectedFilter;
 
-  Future<void> autoLogin() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    _isLoading = true;
-    notifyListeners();
+  Future<void> loadUserFromFirebase() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) return;
+
     try {
-      final company = await CompanyService.getCompanyById(user.uid);
-      _loggedUser = company;
+      _isLoading = true;
+      notifyListeners();
+
+      final user = await CompanyService.usersDb
+          .doc(firebaseUser.uid)
+          .get()
+          .then((s) => s.data() as CompanyModel);
+
+      _loggedUser = user;
     } catch (e) {
       _loggedUser = null;
     } finally {

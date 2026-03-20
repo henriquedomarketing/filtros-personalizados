@@ -10,6 +10,18 @@ class CategoriesScreen extends StatefulWidget {
 }
 
 class _CategoriesScreenState extends State<CategoriesScreen> {
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      if (authProvider.loggedUser == null) {
+        authProvider.loadUserFromFirebase();
+      }
+    });
+  }
+
   void onGoBack(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     authProvider.logoutUser();
@@ -24,7 +36,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(builder: (context, authProvider, child) {
-      print(authProvider.loggedUser?.categories);
       return Scaffold(
         backgroundColor: const Color(0xFF001362),
         appBar: AppBar(
@@ -40,30 +51,32 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             onPressed: () => onGoBack(context),
           ),
         ),
-        body: authProvider.loggedUser != null &&
-                authProvider.loggedUser!.categories.isNotEmpty
-            ? ListView.builder(
-                itemCount: authProvider.loggedUser!.categories.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final String categoryName =
-                    authProvider.loggedUser!.categories[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 8.0, horizontal: 16.0),
-                    child: ElevatedButton(
-                      onPressed: () => onPressCategory(categoryName),
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(5)),
-                      ),
-                      child: Text(categoryName),
-                    ),
-                  );
-                },
-              )
-            : const Center(
-                child: Text('Nenhuma categoria disponível.',
-                    style: TextStyle(color: Colors.white))),
+        body: authProvider.isLoading
+            ? const Center(child: CircularProgressIndicator(color: Colors.white))
+            : authProvider.loggedUser != null &&
+                    authProvider.loggedUser!.categories.isNotEmpty
+                ? ListView.builder(
+                    itemCount: authProvider.loggedUser!.categories.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final String categoryName =
+                          authProvider.loggedUser!.categories[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 8.0, horizontal: 16.0),
+                        child: ElevatedButton(
+                          onPressed: () => onPressCategory(categoryName),
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(5)),
+                          ),
+                          child: Text(categoryName),
+                        ),
+                      );
+                    },
+                  )
+                : const Center(
+                    child: Text('Nenhuma categoria disponível.',
+                        style: TextStyle(color: Colors.white))),
       );
     });
   }
