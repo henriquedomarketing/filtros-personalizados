@@ -1,16 +1,12 @@
 import 'package:camera_marketing_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 class CategoriesScreen extends StatefulWidget {
   const CategoriesScreen({super.key});
-
   @override
   _CategoriesScreenState createState() => _CategoriesScreenState();
 }
-
 class _CategoriesScreenState extends State<CategoriesScreen> {
-
   @override
   void initState() {
     super.initState();
@@ -21,18 +17,15 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
       }
     });
   }
-
   void onGoBack(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     authProvider.logoutUser();
-    Navigator.of(context).pop();
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
-
   void onPressCategory(String categoryName) {
     Navigator.pushNamed(context, "/camera",
         arguments: {"categoryName": categoryName});
   }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(builder: (context, authProvider, child) {
