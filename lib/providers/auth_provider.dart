@@ -1,77 +1,68 @@
-import 'package:camera_marketing_app/providers/auth_provider.dart';
+import 'package:camera_marketing_app/models/company_model.dart';
+import 'package:camera_marketing_app/services/company_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-class CategoriesScreen extends StatefulWidget {
-  const CategoriesScreen({super.key});
-  @override
-  _CategoriesScreenState createState() => _CategoriesScreenState();
-}
-class _CategoriesScreenState extends State<CategoriesScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      if (authProvider.loggedUser == null) {
-        authProvider.loadUserFromFirebase();
-      }
-    });
+import '../models/filter_model.dart';
+class AuthProvider with ChangeNotifier {
+  CompanyModel? _loggedUser;
+  bool _isLoading = false;
+  String? _error;
+  FilterModel? _selectedFilter;
+  CompanyModel? get loggedUser => _loggedUser;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  FilterModel? get selectedFilter => _selectedFilter;
+  Future<void> loadUserFromFirebase() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) return;
+    try {
+      _isLoading = true;
+      notifyListeners();
+      final user = await CompanyService.usersDb
+          .doc(firebaseUser.uid)
+          .get()
+          .then((s) => s.data() as CompanyModel);
+      _loggedUser = user;
+    } catch (e) {
+      _loggedUser = null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
-  Future<void> onGoBack(BuildContext context) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.logoutUser();
-    if (!mounted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+  Future<CompanyModel?> login(String login, String password) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final user = await CompanyService.login(login, password);
+      _loggedUser = user;
+      _error = null;
+      return user;
+    } on FirebaseAuthException catch (e) {
+      _loggedUser = null;
+      _error = e.toString();
+      return null;
+    } catch (e) {
+      _loggedUser = null;
+      _error = e.toString();
+      return null;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
-  void onPressCategory(String categoryName) {
-    Navigator.pushNamed(context, "/camera",
-        arguments: {"categoryName": categoryName});
+  Future<void> logoutUser() async {
+    await FirebaseAuth.instance.signOut();
+    _loggedUser = null;
+    notifyListeners();
   }
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(builder: (context, authProvider, child) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF001362),
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          title: const Text(
-            'CATEGORIAS',
-            style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
-          ),
-          centerTitle: true,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => onGoBack(context),
-          ),
-        ),
-        body: authProvider.isLoading
-            ? const Center(child: CircularProgressIndicator(color: Colors.white))
-            : authProvider.loggedUser != null &&
-                    authProvider.loggedUser!.categories.isNotEmpty
-                ? ListView.builder(
-                    itemCount: authProvider.loggedUser!.categories.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final String categoryName =
-                          authProvider.loggedUser!.categories[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 8.0, horizontal: 16.0),
-                        child: ElevatedButton(
-                          onPressed: () => onPressCategory(categoryName),
-                          style: ElevatedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(5)),
-                          ),
-                          child: Text(categoryName),
-                        ),
-                      );
-                    },
-                  )
-                : const Center(
-                    child: Text('Nenhuma categoria disponível.',
-                        style: TextStyle(color: Colors.white))),
-      );
-    });
+  void setSelectedFilter(FilterModel filter) {
+    _selectedFilter = filter;
+    notifyListeners();
+  }
+  void clearSelectedFilter() {
+    _selectedFilter = null;
+    notifyListeners();
   }
 }
