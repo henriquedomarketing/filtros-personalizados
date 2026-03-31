@@ -23,7 +23,6 @@ void main() async {
 
 class CameraMarketingApp extends StatelessWidget {
   const CameraMarketingApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -65,7 +64,6 @@ class CameraMarketingApp extends StatelessWidget {
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
-
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
@@ -77,10 +75,40 @@ class AuthGate extends StatelessWidget {
           );
         }
         if (snapshot.hasData) {
-          return const CategoriesScreen();
+          return const AuthRedirect();
         }
         return const LoginScreen();
       },
+    );
+  }
+}
+
+class AuthRedirect extends StatefulWidget {
+  const AuthRedirect({super.key});
+  @override
+  State<AuthRedirect> createState() => _AuthRedirectState();
+}
+
+class _AuthRedirectState extends State<AuthRedirect> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final authProvider = Provider.of<app_auth.AuthProvider>(context, listen: false);
+      await authProvider.loadUserFromFirebase();
+      if (!mounted) return;
+      if (authProvider.loggedUser?.admin == true) {
+        Navigator.of(context).pushReplacementNamed('/admin');
+      } else {
+        Navigator.of(context).pushReplacementNamed('/categories');
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }
