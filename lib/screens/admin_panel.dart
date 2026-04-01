@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:camera_marketing_app/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -62,8 +63,11 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     }
   }
 
-  void onGoBack(BuildContext context) {
-    Navigator.of(context).pop();
+  Future<void> onGoBack(BuildContext context) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.logoutUser();
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
   }
 
   void onSupportChanged(String value, ConfigProvider configProvider) {
@@ -205,7 +209,6 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
               }
             )
           ],
-
         ),
       ),
     );
