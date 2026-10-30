@@ -1,0 +1,19 @@
+{
+  "name": "Camera Marketing — Filtros Personalizados",
+  "short_name": "Camera Marketing",
+  "description": "Aplique filtros da sua empresa a fotos, direto do celular.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#001362",
+  "theme_color": "#001362",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    }
+  ]
+}
