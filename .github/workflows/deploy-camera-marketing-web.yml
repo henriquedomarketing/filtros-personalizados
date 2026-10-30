@@ -1,0 +1,38 @@
+name: Publicar Camera Marketing Web (teste)
+
+on:
+  push:
+    branches:
+      - feature/camera-marketing-web-mobile-mvp
+    paths:
+      - "web_mobile/**"
+      - ".github/workflows/deploy-camera-marketing-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "camera-marketing-pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download do projeto
+        uses: actions/checkout@v4
+      - name: Configurar GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Enviar arquivos estáticos
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: web_mobile
+      - name: Publicar website
+        id: deploy
+        uses: actions/deploy-pages@v4
