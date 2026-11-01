@@ -12,6 +12,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="admin.css">
   <title>Camera Marketing · Web</title>
 </head>
 <body>
@@ -73,6 +74,61 @@
         <button id="activateCamera" class="secondary-btn" type="button">Ativar câmera</button>
       </section>
 
+      <section id="adminView" class="view hidden">
+        <div class="admin-heading"><div class="eyebrow">ÁREA ADMINISTRATIVA</div><h1>Gerenciar empresas</h1><p class="admin-subtitle">Cadastre clientes, organize categorias e disponibilize PNGs personalizados para a câmera.</p></div>
+        <div id="adminNotice" class="hidden" role="status" aria-live="polite"></div>
+        <div id="adminOverview">
+          <div class="admin-summary"><b id="adminCompanyCount">0</b><span>empresas cadastradas</span></div>
+          <div class="admin-dashboard">
+            <button id="adminOpenCompany" type="button" class="admin-link">Cadastrar empresa <span>＋</span></button>
+            <button id="adminOpenCategory" type="button" class="admin-link">Criar categoria <span>＋</span></button>
+            <button id="adminOpenFilter" type="button" class="admin-link">Cadastrar filtro PNG <span>＋</span></button>
+          </div>
+          <div class="admin-section-top"><h2>Seus clientes</h2><button id="adminRefreshCompanies" type="button" class="small-action">Atualizar</button></div>
+          <div id="adminCompanyList"></div>
+        </div>
+        <div id="adminCompany" class="hidden">
+          <div class="admin-section-top"><button class="back-btn" data-admin-back type="button">‹</button><h2>Nova empresa</h2></div>
+          <form id="adminCreateCompanyForm" class="admin-form">
+            <label for="adminCompanyName">Nome da empresa</label>
+            <input id="adminCompanyName" type="text" placeholder="Ex.: Loja Modelo" maxlength="100" required>
+            <label for="adminCompanyEmail">E-mail para login</label>
+            <input id="adminCompanyEmail" type="email" autocomplete="off" placeholder="cliente@empresa.com" required>
+            <label for="adminCompanyPassword">Senha inicial</label>
+            <input id="adminCompanyPassword" type="password" minlength="8" autocomplete="new-password" required>
+            <p>O cliente poderá acessar o Camera Marketing Web com este e-mail e senha.</p>
+            <button id="adminCreateUserBtn" class="primary-btn" type="submit">Cadastrar empresa</button>
+          </form>
+        </div>
+        <div id="adminCategory" class="hidden">
+          <div class="admin-section-top"><button class="back-btn" data-admin-back type="button">‹</button><h2>Nova categoria</h2></div>
+          <form id="adminCreateCategoryForm" class="admin-form">
+            <label for="adminCategoryCompany">Empresa</label>
+            <select id="adminCategoryCompany" required></select>
+            <label for="adminNewCategory">Nome da categoria</label>
+            <input id="adminNewCategory" type="text" maxlength="80" placeholder="Ex.: Bom dia, Ofertas, Feirão" required>
+            <button id="adminSaveCategoryBtn" type="submit" class="primary-btn">Salvar categoria</button>
+          </form>
+        </div>
+        <div id="adminFilter" class="hidden">
+          <div class="admin-section-top"><button class="back-btn" data-admin-back type="button">‹</button><h2>Novo filtro PNG</h2></div>
+          <form id="adminUploadFilterForm" class="admin-form">
+            <label for="adminFilterCompany">Empresa</label>
+            <select id="adminFilterCompany" required></select>
+            <label for="adminFilterCategory">Categoria</label>
+            <select id="adminFilterCategory" required></select>
+            <label for="adminFilterName">Nome do filtro</label>
+            <input id="adminFilterName" type="text" maxlength="100" placeholder="Ex.: Bom dia 01" required>
+            <label for="adminFilterPng">Imagem PNG transparente</label>
+            <input id="adminFilterPng" type="file" accept="image/png,.png" required>
+            <p id="adminPngInfo">Use um PNG com fundo transparente. O arquivo será ajustado para 1080 × 1920.</p>
+            <img id="adminPngPreview" class="hidden" alt="Prévia do filtro selecionado">
+            <button id="adminUploadFilterBtn" type="submit" class="primary-btn">Publicar filtro para o cliente</button>
+          </form>
+          <p id="adminFilterCount" class="muted">Filtros cadastrados</p>
+          <div id="adminExistingFilters"></div>
+        </div>
+      </section>
       <section id="resultView" class="view hidden">
         <div class="section-heading">
           <button id="backToCamera" class="back-btn" type="button" aria-label="Voltar para câmera">‹</button>
