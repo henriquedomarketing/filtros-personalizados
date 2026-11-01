@@ -1,3 +1,4 @@
+import { mountAdmin } from './admin.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
@@ -20,6 +21,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+let adminPanel = null;
 const $ = (id) => document.getElementById(id);
 const state = {
   company: null,
@@ -43,7 +45,7 @@ function toast(message) {
 }
 
 function view(viewId) {
-  ['loginView', 'categoryView', 'cameraView', 'resultView'].forEach((id) => {
+  ['loginView', 'categoryView', 'cameraView', 'resultView', 'adminView'].forEach((id) => {
     $(id).classList.toggle('hidden', id !== viewId);
   });
   $('logoutBtn').classList.toggle('hidden', !state.company);
@@ -81,6 +83,7 @@ async function loadCompany(user) {
       uid: user.uid,
       name: String(data.name || 'Sua empresa'),
       admin: data.admin === true,
+      categories: Array.isArray(data.categories) ? data.categories : [],
       filters: Array.isArray(data.filters)
         ? data.filters.filter((f) => f && typeof f.category === 'string' && typeof f.url === 'string')
         : []
@@ -91,10 +94,12 @@ async function loadCompany(user) {
     $('companyName').textContent = state.company.name;
     $('loginError').textContent = '';
     if (state.company.admin) {
-      toast('O painel administrativo web ainda não está incluído nesta primeira versão.');
+      if (!adminPanel) adminPanel=mountAdmin({firebaseConfig,auth,db,state,view,toast});
+      await adminPanel.show();
+    } else {
+      renderCategories();
+      view('categoryView');
     }
-    renderCategories();
-    view('categoryView');
   } catch (error) {
     console.error('Falha ao carregar empresa:', error);
     state.company = null;
@@ -150,7 +155,7 @@ $('logoutBtn').addEventListener('click', async () => {
 function renderCategories() {
   const root = $('categoryList');
   root.replaceChildren();
-  const categories = [...new Set(state.company.filters.map((f) => f.category))];
+  const categories = [...new Set([...(state.company.categories || []), ...state.company.filters.map((f) => f.category)])];
   if (!categories.length) {
     const empty = document.createElement('p');
     empty.textContent = 'Nenhuma categoria disponível para esta empresa.';
