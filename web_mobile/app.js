@@ -216,10 +216,34 @@ function renderFilters() {
     button.setAttribute('aria-label', filter.name?.trim() || 'Filtro ' + (index + 1));
     if (filter === state.selectedFilter) button.classList.add('selected');
     const image = document.createElement('img');
-    image.src = filter.url;
     image.alt = '';
     image.loading = 'lazy';
     image.referrerPolicy = 'no-referrer';
+    // A broken thumbnail may be caused by an outdated download token.
+    // Refresh the URL once; never display a broken-image icon.
+    let retried = false;
+    image.onerror = async () => {
+      if (retried) {
+        image.onerror = null;
+        image.removeAttribute('src');
+        image.alt = 'PNG indisponível';
+        image.style.visibility = 'hidden';
+        return;
+      }
+      retried = true;
+      try {
+        const refreshed = await getDownloadURL(storageRef(storage, filter.url));
+        if (!refreshed || refreshed === image.src) throw Error('URL ainda indisponível');
+        filter.url = refreshed;
+        image.src = refreshed;
+      } catch (error) {
+        image.onerror = null;
+        image.removeAttribute('src');
+        image.alt = 'PNG indisponível';
+        image.style.visibility = 'hidden';
+      }
+    };
+    image.src = filter.url;
     const name = document.createElement('span');
     name.textContent = filter.name?.trim() || 'Filtro ' + (index + 1);
     button.append(image, name);
