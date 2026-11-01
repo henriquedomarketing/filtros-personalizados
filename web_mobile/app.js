@@ -1,5 +1,5 @@
 import { mountAdmin } from './admin.js';
-import { getStorage, ref as storageRef, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
+import { getStorage, ref as storageRef, getDownloadURL, getBlob } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
@@ -31,6 +31,7 @@ const state = {
   selectedFilter: null,
   overlayImage: null,
   filterReadyForExport: false,
+  filterObjectUrl: null,
   stream: null,
   facingMode: 'environment',
   busy: false,
@@ -123,6 +124,7 @@ onAuthStateChanged(auth, (user) => {
     state.category = null;
     state.selectedFilter = null;
     state.overlayImage = null;
+    releaseFilterObjectUrl();
     view('loginView');
   }
 });
@@ -188,6 +190,7 @@ async function openCategory(category) {
   state.selectedFilter = null;
   state.overlayImage = null;
   state.filterReadyForExport = false;
+  releaseFilterObjectUrl();
   $('categoryTitle').textContent = category;
   $('filterOverlay').classList.add('hidden');
   renderFilters();
@@ -235,65 +238,102 @@ function loadImage(url, crossOrigin = false) {
   });
 }
 
+// Firebase Storage URLs may become stale when download tokens change.
+// Try a fresh Storage reference before declaring the PNG missing.
+// When allowed by Storage rules and CORS, getBlob() also works without a public token.
+function releaseFilterObjectUrl() {
+  if (state.filterObjectUrl) {
+    URL.revokeObjectURL(state.filterObjectUrl);
+    state.filterObjectUrl = null;
+  }
+}
+function describeStorageFailure(error, canPreview = false) {
+  const code = error?.code || '';
+  if (canPreview) return 'Filtro visível, mas não pode ser salvo. Verifique o CORS do Firebase Storage.';
+  if (code.includes('object-not-found')) return 'O arquivo deste filtro não foi encontrado no Storage. Confira a pasta filtros/ e o cadastro.';
+  if (code.includes('unauthorized') || code.includes('unauthenticated')) return 'O Firebase negou acesso ao filtro. Confira as regras do Storage e a conta do cliente.';
+  if (code.includes('invalid-url') || code.includes('invalid-argument')) return 'O link cadastrado para este PNG é inválido. Cadastre um filtro novo.';
+  return 'Não foi possível carregar o PNG. Confira se o arquivo existe no Storage e se o CORS permite a leitura.';
+}
 async function selectFilter(filter) {
   state.selectedFilter = filter;
   state.overlayImage = null;
   state.filterReadyForExport = false;
+  releaseFilterObjectUrl();
   const overlay = $('filterOverlay');
   overlay.classList.add('hidden');
   renderFilters();
   toast('Carregando filtro...');
-  let lastError;
-  let availableUrl = filter.url;
   let image = null;
-  let corsEnabled = false;
-  // First load as a CORS-safe image so the result may be saved to canvas.
-  // When this fails, test whether the image is available without CORS;
-  // showing the preview is still helpful, but export must stay disabled.
-  for (let attempt = 0; attempt < 2; attempt++) {
+  let safeUrl = null;
+  let canPreview = false;
+  let lastError = null;
+  // Existing direct download URLs are fast when valid and CORS enabled.
+  try {
+    image = await loadImage(filter.url, true);
+    safeUrl = filter.url;
+  } catch(error) {
+    lastError = error;
+    // A normal <img> can display a file even if canvas access is blocked by CORS.
     try {
-      image = await loadImage(availableUrl, true);
-      corsEnabled = true;
-      break;
-    } catch (error) {
-      lastError = error;
-      try {
-        image = await loadImage(availableUrl, false);
-        corsEnabled = false;
-        break;
-      } catch (unavailableError) {
-        lastError = unavailableError;
-      }
+      image = await loadImage(filter.url, false);
+      canPreview = true;
+    } catch(error2) {
+      lastError = error2;
     }
-    if (attempt === 0) {
-      // Recover stale Firebase Storage download tokens where rules allow.
-      try {
-        if (availableUrl.startsWith('https://firebasestorage.googleapis.com/')) {
-          const renewed = await getDownloadURL(storageRef(storage, availableUrl));
-          if (renewed && renewed !== availableUrl) {
-            availableUrl = renewed;
-            filter.url = renewed;
-          }
-        }
-      } catch (renewError) {
-        console.warn('Não foi possível renovar o URL do filtro:', renewError);
+  }
+  if (!safeUrl) {
+    // Firebase SDK can recover a changed download token when permissions allow.
+    try {
+      const ref = storageRef(storage, filter.url);
+      const refreshed = await getDownloadURL(ref);
+      if (refreshed) {
+        if (refreshed !== filter.url) filter.url = refreshed;
+        try {
+          const freshImage = await loadImage(refreshed, true);
+          image = freshImage;
+          safeUrl = refreshed;
+        } catch(error) { lastError = error; }
       }
+      if (!safeUrl) {
+        // A Blob URL belongs to this page, so canvas/export can use it directly.
+        const blob = await getBlob(ref);
+        if (state.selectedFilter !== filter) return;
+        const blobUrl = URL.createObjectURL(blob);
+        try {
+          const blobImage = await loadImage(blobUrl);
+          image = blobImage;
+          state.filterObjectUrl = blobUrl;
+          safeUrl = blobUrl;
+        } catch(error) {
+          URL.revokeObjectURL(blobUrl);
+          lastError = error;
+        }
+      }
+    } catch(error) {
+      lastError = error;
+      console.warn('Firebase não conseguiu recuperar este filtro:', error?.code || error);
     }
   }
   if (state.selectedFilter !== filter) return;
-  if (!image) {
-    console.error('Arquivo do filtro não abre nem como imagem simples:', lastError);
-    toast('O PNG não está disponível no Firebase. Reenvie o filtro pelo painel ou confira o arquivo no Storage.');
-    return;
-  }
-  state.overlayImage = image;
-  state.filterReadyForExport = corsEnabled;
-  if (corsEnabled) overlay.crossOrigin = 'anonymous';
-  else overlay.removeAttribute('crossorigin');
-  overlay.src = availableUrl;
-  overlay.classList.remove('hidden');
-  if (!corsEnabled) {
-    toast('Filtro visível, mas o Firebase bloqueia a exportação. É preciso liberar CORS do Storage.');
+  if (safeUrl && image) {
+    state.overlayImage = image;
+    state.filterReadyForExport = true;
+    if (safeUrl.startsWith('blob:')) overlay.removeAttribute('crossorigin');
+    else overlay.crossOrigin = 'anonymous';
+    overlay.src = safeUrl;
+    overlay.classList.remove('hidden');
+    toast('Filtro carregado. Foto pronta para capturar!');
+  } else if (canPreview && image) {
+    state.overlayImage = image;
+    state.filterReadyForExport = false;
+    overlay.removeAttribute('crossorigin');
+    overlay.src = filter.url;
+    overlay.classList.remove('hidden');
+    toast(describeStorageFailure(lastError, true));
+  } else {
+    console.error('Falha ao carregar filtro:', lastError);
+    toast(describeStorageFailure(lastError));
   }
 }
 
