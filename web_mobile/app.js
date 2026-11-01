@@ -1,4 +1,5 @@
 import { mountAdmin } from './admin.js';
+import { getStorage, ref as storageRef, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-storage.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {
   getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
@@ -21,6 +22,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 let adminPanel = null;
 const $ = (id) => document.getElementById(id);
 const state = {
@@ -28,6 +30,7 @@ const state = {
   category: null,
   selectedFilter: null,
   overlayImage: null,
+  filterReadyForExport: false,
   stream: null,
   facingMode: 'environment',
   busy: false,
@@ -184,6 +187,7 @@ async function openCategory(category) {
   state.category = category;
   state.selectedFilter = null;
   state.overlayImage = null;
+  state.filterReadyForExport = false;
   $('categoryTitle').textContent = category;
   $('filterOverlay').classList.add('hidden');
   renderFilters();
@@ -234,20 +238,62 @@ function loadImage(url, crossOrigin = false) {
 async function selectFilter(filter) {
   state.selectedFilter = filter;
   state.overlayImage = null;
-  $('filterOverlay').classList.add('hidden');
+  state.filterReadyForExport = false;
+  const overlay = $('filterOverlay');
+  overlay.classList.add('hidden');
   renderFilters();
   toast('Carregando filtro...');
-  try {
-    const image = await loadImage(filter.url, true);
-    if (state.selectedFilter !== filter) return;
-    state.overlayImage = image;
-    $('filterOverlay').src = filter.url;
-    $('filterOverlay').classList.remove('hidden');
-  } catch (error) {
-    console.error('Filtro indisponível:', error);
-    if (state.selectedFilter === filter) {
-      toast('Não foi possível carregar o filtro. Verifique permissões e CORS do Storage.');
+  let lastError;
+  let availableUrl = filter.url;
+  let image = null;
+  let corsEnabled = false;
+  // First load as a CORS-safe image so the result may be saved to canvas.
+  // When this fails, test whether the image is available without CORS;
+  // showing the preview is still helpful, but export must stay disabled.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      image = await loadImage(availableUrl, true);
+      corsEnabled = true;
+      break;
+    } catch (error) {
+      lastError = error;
+      try {
+        image = await loadImage(availableUrl, false);
+        corsEnabled = false;
+        break;
+      } catch (unavailableError) {
+        lastError = unavailableError;
+      }
     }
+    if (attempt === 0) {
+      // Recover stale Firebase Storage download tokens where rules allow.
+      try {
+        if (availableUrl.startsWith('https://firebasestorage.googleapis.com/')) {
+          const renewed = await getDownloadURL(storageRef(storage, availableUrl));
+          if (renewed && renewed !== availableUrl) {
+            availableUrl = renewed;
+            filter.url = renewed;
+          }
+        }
+      } catch (renewError) {
+        console.warn('Não foi possível renovar o URL do filtro:', renewError);
+      }
+    }
+  }
+  if (state.selectedFilter !== filter) return;
+  if (!image) {
+    console.error('Arquivo do filtro não abre nem como imagem simples:', lastError);
+    toast('O PNG não está disponível no Firebase. Reenvie o filtro pelo painel ou confira o arquivo no Storage.');
+    return;
+  }
+  state.overlayImage = image;
+  state.filterReadyForExport = corsEnabled;
+  if (corsEnabled) overlay.crossOrigin = 'anonymous';
+  else overlay.removeAttribute('crossorigin');
+  overlay.src = availableUrl;
+  overlay.classList.remove('hidden');
+  if (!corsEnabled) {
+    toast('Filtro visível, mas o Firebase bloqueia a exportação. É preciso liberar CORS do Storage.');
   }
 }
 
@@ -334,6 +380,10 @@ async function composeImage(source, mirror = false) {
   if (state.busy) return;
   if (!state.selectedFilter || !state.overlayImage) {
     toast('Selecione um filtro e aguarde o carregamento antes de continuar.');
+    return;
+  }
+  if (!state.filterReadyForExport) {
+    toast('O filtro aparece na câmera, mas não pode ser salvo: libere CORS no Firebase Storage.');
     return;
   }
   setBusy(true);
